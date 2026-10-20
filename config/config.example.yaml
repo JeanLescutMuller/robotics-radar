@@ -1,0 +1,15 @@
+timezone: Europe/Zurich
+lookahead_days: 183
+announcement_lookback_days: 30
+minimum_task_score: 60
+minimum_notification_score: 75
+minimum_calendar_score: 80
+calendar:
+  target_id: 5vut7ufd25i34mnf92599ofo3c@group.calendar.google.com
+  title_prefix: "🤖 [Robotics Radar] "
+  color_id: "1"
+  marker: ROBOTICS_RADAR_AUTO
+todoist:
+  project_id: 6hj34MgwvM37xF5c
+  description_prefix: "Stream: Robotics - Events"
+dry_run: true

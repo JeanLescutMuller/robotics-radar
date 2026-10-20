@@ -1,15 +1,27 @@
+# Copy to ~/.config/robotics-radar/config.yaml (chmod 600) and fill in the real values there.
+# Never put a real id, email or answer in this file: the repo is public.
 timezone: Europe/Zurich
 lookahead_days: 183
 announcement_lookback_days: 30
 minimum_task_score: 60
-minimum_notification_score: 75
+minimum_notification_score: 75   # notifications not built yet (DESIGN.md §9)
 minimum_calendar_score: 80
+minimum_registration_score: 75   # free events only (DESIGN.md §5)
 calendar:
-  target_id: 5vut7ufd25i34mnf92599ofo3c@group.calendar.google.com
+  target_id: <Couple calendar id>@group.calendar.google.com
   title_prefix: "🤖 [Robotics Radar] "
   color_id: "1"
   marker: ROBOTICS_RADAR_AUTO
 todoist:
-  project_id: 6hj34MgwvM37xF5c
-  description_prefix: "Stream: Robotics - Events"
+  project_id: <Professional project id>
+  section_id: <Robotics section id>
+  description_prefix: "Subsection: Events"
+form:                            # answers the radar may put on a registration form
+  email: <you>+events@gmail.com
+  first_name: <first name>
+  last_name: <last name>
+  company_role: <to be decided, DESIGN.md open points>
+  linkedin: <profile URL>
+registration:
+  submit: false                  # stop before the final click, save a screenshot (DESIGN.md §5)
 dry_run: true

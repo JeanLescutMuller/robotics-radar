@@ -17,6 +17,8 @@ todoist:
   section_id: <Robotics section id>
   description_prefix: "Subsection: Events"
   chatgpt_log_task_id: <task holding ChatGPT dry-run comments>
+luma:
+  account_email: <your Luma account email>   # logged in by email code (src/luma.py)
 form:                            # answers the radar may put on a registration form
   email: <you>+events@gmail.com
   first_name: <first name>

@@ -77,12 +77,32 @@ The repo stays public. `~/.config/robotics-radar/config.yaml` (chmod 600) holds 
 
 | # | What | Writes | Done when | The user's time |
 |---|---|---|---|---|
-| 0 | this design; ids moved to `~/.config/robotics-radar/` | none | committed (2026-10-20) | — |
-| 1 | read all calendars and Professional › Robotics; check the historical leads; fill SQLite | none: a report | every event task and Couple event matched to one event, the doubts listed | read one table |
-| 2 | steps 1–4 in dry-run, side by side with ChatGPT for about a week | none | the radar finds at least what ChatGPT finds, no duplicate in its dry-run writes | look at one comparison |
-| 3 | Calendar and Todoist writes on; job installed | Calendar, Todoist | a week of runs, every write read back, no duplicate; **the user turns off the ChatGPT schedule** | 1 min |
+| 0 | this design; ids moved to `~/.config/robotics-radar/` | none | committed (2026-10-20) ✅ | — |
+| 1 | read all calendars and Professional › Robotics; check the historical leads; fill SQLite (`src/reconcile.py`) ✅ 2026-10-21 | none: a report; then the 4 tasks of past events deleted with the user's OK | every event task and Couple event matched to one event, the doubts listed | read one table |
+| 2 | steps 1–4 in dry-run, side by side with ChatGPT for about a week; the job installed in dry-run (it only plans) | none | the radar finds at least what ChatGPT finds, no duplicate in its dry-run writes | look at one comparison |
+| 3 | Calendar and Todoist writes on | Calendar, Todoist | a week of runs, every write read back, no duplicate; **the user turns off the ChatGPT schedule** | 1 min |
 | 4 | registration, auto group, screenshots only, then on; then ask first | registrations | 10 confirmed registrations, none wrong | log in once to each site; look at screenshots |
 | 5 | notifications through alerting | — | waits for alerting (§9) | — |
+
+## 7b. Phase 2 as built (2026-10-21)
+
+```
+src/run.py ── collect.py ──┬─ luma()      Luma's public API: categories ai, tech near Zürich + the Zürich page (keyword filter),
+                           │               + organiser calendars (config + every organiser of an event scored ≥60)
+                           ├─ voxel51()   Voxel51's public CMS (Sanity): online or Swiss events
+                           ├─ pages()     config/sources.yaml pages: text hashed; Claude Haiku reads it only when it changed
+                           └─ broad_search()  Claude Sonnet + web search, at most weekly
+          merge (keys, event URLs, close date + similar title) → link (event tasks, every calendar, Luma emails)
+          → score (Sonnet, only new or changed) → plan (table plans) → state/run_report.md
+```
+
+| Choice | Reason | Rejected |
+|---|---|---|
+| Luma's public API (`api.lu.ma`), no browser | gives free/price, sold out, approval, waitlist, spots [verified 2026-10-21] | Luma search: needs a login (phase 4's Chrome) |
+| a listing page is read by Claude only when its text changed | the daily cost is near zero when nothing moved | a parser per site: brittle, many sites |
+| JavaScript-only pages (DARE, Meetup, SECA) listed apart, not read | plain HTTP gets no events [verified 2026-10-21] | read them now: needs the headless Chrome of phase 4 |
+| events known only from a task (ChatGPT's) are tracked from the task | the past-task and calendar rules apply to them too | ignore them until a source finds them |
+| the job is installed in phase 2, dry-run | a week of daily comparisons without anyone running it | run by hand daily |
 
 ## 8. Changed from ChatGPT's handover
 

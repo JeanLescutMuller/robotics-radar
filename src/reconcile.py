@@ -3,94 +3,23 @@
 Reads:  Todoist Professional › Robotics (token: ~/.config/task-management/todoist_token.env, never printed),
         all visible Google calendars and Luma emails in Gmail (gws CLI), data/historical-events.json,
         the events' web pages (one GET each), ~/.config/robotics-radar/config.yaml.
-Writes: state/radar.sqlite and state/phase1_report.md (git-ignored: they hold personal data). Nothing external.
+Writes: state/phase1.sqlite and state/phase1_report.md (git-ignored: they hold personal data). Nothing external.
 
 Run:    python3 src/reconcile.py > state/phase1.log 2>&1
 """
-import json, re, sqlite3, subprocess, sys, time, unicodedata, urllib.request
+import json, re, sqlite3, sys, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
-from difflib import SequenceMatcher
-from pathlib import Path
-import yaml
+from common import MONTHS, todoist_get, ROOT, STATE, canon_url, d_cfg, gws, log, norm_tokens, parse_event_dates, similarity, urls_in
 
-ROOT = Path(__file__).resolve().parent.parent
-STATE = ROOT / 'state'
 TODAY = date.today()
-d_cfg = yaml.safe_load((Path.home() / '.config/robotics-radar/config.yaml').read_text())
-MONTHS = {m: i + 1 for i, m in enumerate('jan feb mar apr may jun jul aug sep oct nov dec'.split())}
-# words that say what to do, not which event: removed before comparing titles
-STOP = set('''a an and the of for at in on to by with if or x vs register registration request admission check application
-status join waitlist confirm attendance plan find decide whether attend visit follow up eligibility cost worthwhile
-radar bobi robotics_radar event events session meetup
-buy ticket tickets apply summit conference
-robotics robot zurich ai physical 2026 2027 seminar workshop talk night day
-approved confirmed pending you re your is has been next week weeks starting tomorrow today reminder'''.split())
-# last two lines: words in most titles, and in Luma's email subjects, that say nothing about which event
-
-
-def log(*args): print(datetime.now().strftime('%H:%M:%S'), *args, flush=True)
-
-
-def gws(*args):
-    # gws prints a keyring line on stderr: keep stdout only
-    out = subprocess.run(['gws', *args], capture_output=True, text=True, timeout=120)
-    if out.returncode: raise RuntimeError(f'gws {args[:3]} failed: {out.stderr[-300:]}')
-    return json.loads(out.stdout)
-
-
-def canon_url(url):
-    # same event, different spellings: lu.ma = luma.com, no query, no trailing slash, no www
-    url = re.sub(r'[)\]>.,;]+$', '', url.strip()).split('?')[0].split('#')[0].rstrip('/').lower()
-    url = re.sub(r'^https?://(www\.)?', '', url)
-    return url.replace('lu.ma/', 'luma.com/')
-
-
-def urls_in(text):
-    return {canon_url(u) for u in re.findall(r'https?://[^\s)\]<>"]+', text or '')
-            if not re.search(r'mail\.google|google\.com/calendar|todoist\.com', u)}
-
-
-def norm_tokens(title):
-    title = unicodedata.normalize('NFKD', title).encode('ascii', 'ignore').decode().lower()
-    title = re.sub(r'\[robotics radar\]|^robotics - |^professional/robotics', ' ', title)
-    return [w for w in re.findall(r'[a-z0-9]+', title) if w not in STOP and (len(w) > 1 or w.isdigit())]
-
-
-def similarity(t1, t2):
-    l1, l2 = norm_tokens(t1), norm_tokens(t2)
-    if not l1 or not l2: return 0.0
-    # share of the shorter title's words found in the other; a one-word title only by spelling (else "roundtable" matches every roundtable)
-    # (spelling only for one-word titles: on longer ones it matched "cleaning" with "learning")
-    if min(len(set(l1)), len(set(l2))) > 1: return len(set(l1) & set(l2)) / min(len(set(l1)), len(set(l2)))
-    return SequenceMatcher(None, ' '.join(l1), ' '.join(l2)).ratio()
-
-
-def parse_event_dates(desc):
-    # the "Event:" line ChatGPT writes: ISO dates, or "Thu 22 Oct 2026", "28–29 Oct 2026", "Friday 23 October 2026"
-    m = re.search(r'Event:\s*(.*)', desc or '')
-    if not m: return None, None
-    line = m.group(1)
-    l_iso = re.findall(r'(\d{4}-\d{2}-\d{2})', line)
-    if l_iso: return date.fromisoformat(l_iso[0]), date.fromisoformat(l_iso[-1])
-    m = re.search(r'(\d{1,2})(?:\s*[–-]\s*(\d{1,2}))?\s+([A-Za-z]{3})[a-z]*\.?,?\s+(\d{4})', line)
-    if not m or m[3].lower() not in MONTHS: return None, None
-    start = date(int(m[4]), MONTHS[m[3].lower()], int(m[1]))
-    return start, start.replace(day=int(m[2])) if m[2] else start
 
 
 # ---------- 1. read every source into one list of items ----------
 l_items = []   # dicts: kind, ext_id, title, start, end, urls, extra
 
 def read_todoist():
-    token = re.search(r'TODOIST_API_TOKEN="?([^"\n]+)', (Path.home() / '.config/task-management/todoist_token.env').read_text())[1]
-    l_tasks, cursor = [], None
-    while True:
-        url = f"https://api.todoist.com/api/v1/tasks?section_id={d_cfg['todoist']['section_id']}&limit=200" + (f'&cursor={cursor}' if cursor else '')
-        req = urllib.request.Request(url, headers={'Authorization': f'Bearer {token}'})
-        d_page = json.load(urllib.request.urlopen(req, timeout=30))
-        l_tasks += d_page['results']; cursor = d_page.get('next_cursor')
-        if not cursor: break
+    l_tasks = todoist_get(f"tasks?section_id={d_cfg['todoist']['section_id']}&limit=200")
     for d_t in l_tasks:
         if not d_t['description'].startswith(d_cfg['todoist']['description_prefix']): continue   # other subsections: not event tasks
         start, end = parse_event_dates(d_t['description'])
@@ -212,7 +141,7 @@ log(f'web: {len(l_checks)} pages checked, {sum(c[1] != 200 for c in l_checks)} n
 # ---------- 4. state: one SQLite file ----------
 STATE.mkdir(exist_ok=True)
 ts = int(time.time()); dt = datetime.fromtimestamp(ts, timezone.utc).isoformat(timespec='seconds')
-db = sqlite3.connect(STATE / 'radar.sqlite')
+db = sqlite3.connect(STATE / 'phase1.sqlite')
 with db:
     db.executescript('''
       DROP TABLE IF EXISTS events; DROP TABLE IF EXISTS items; DROP TABLE IF EXISTS url_checks;

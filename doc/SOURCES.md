@@ -7,3 +7,5 @@ First class:
 - Company events: ANYbotics, ABB Robotics, Hexagon, RIVR, Ascento, mimic, Gravis, Flexion and newly found Swiss robotics companies.
 - Broad web searches beyond the known directory list each run.
 Use official organizer/registration pages to confirm dates, time, price and eligibility; avoid claiming availability from snippets.
+
+How each is read today (2026-10-21): `config/sources.yaml` and `DESIGN.md` §7b. Not read yet: Luma search (needs a login), JavaScript-only pages (DARE, Meetup, SECA), LinkedIn, Eventbrite; the weekly Claude web search covers them meanwhile.

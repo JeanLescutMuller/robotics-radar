@@ -26,3 +26,14 @@ Read before working: `REQUIREMENTS.md` (what the user gets), `DESIGN.md` (what w
 | **safety date** | an event task's due date: the day to act (register, apply), never the event's date | deadline (reserved for the organiser's published cutoff) |
 | **registration** | signing the user up for an event (register, request admission, join a waitlist) | booking, enrolment |
 | **registration group** | auto / ask first / never: what the radar may do for an event (`DESIGN.md` §5) | tier, level |
+
+## Commands
+
+```bash
+cd ~/dev/robotics-radar
+python3 src/run.py --no-search > state/run.log 2>&1   # one dry-run by hand (state/ here); the report: state/run_report.md
+python3 src/reconcile.py > state/phase1.log 2>&1      # phase 1's read-only check
+bash install.sh                                       # deploy HEAD to ~/opt/robotics-radar, load the daily job (dry-run)
+```
+
+The job's own state and reports: `~/opt/robotics-radar/state/` (never edited by hand). Claude cost per run: the report's first table.

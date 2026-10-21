@@ -1,0 +1,34 @@
+# Where events come from (doc/SOURCES.md is the human list). Public: no personal values here.
+luma:
+  # Luma's public discovery, near Zürich; search needs a login (phase 4's Chrome profile), so not used yet
+  latitude: 47.3769
+  longitude: 8.5417
+  categories: [ai, tech]
+  place: zurich
+  countries: [Switzerland, Schweiz, Suisse]
+  # Luma organiser calendars always read in full (their slugs); every organiser of a good event is added in state
+  calendars: [dream-machines]
+voxel51:
+  sanity_url: https://h6toihm1.api.sanity.io/v2021-10-21/data/query/production
+  keep_if: '(?i)online|zoom|virtual|zurich|zürich|switzerland'
+# an event of a broad feed (Luma categories) is kept only if its name or description matches
+keywords: '(?i)robot|physical ai|embodied|humanoid|autonom|drone|uav|manipulat|\bros\b|ros2|hardware|deep ?tech|computer vision|perception|\bvlm|vision.language|multimodal|sensor|lidar|mechatron|automation|manufactur|cobot|actuat|exoskelet|self.driving|simulation|isaac|edge ai|embedded|world model|reinforcement learning'
+# pages read by Claude (Haiku) only when their text changed since the last run
+pages:
+  - https://robotics-talks.ethz.ch/
+  - https://www.ifi.uzh.ch/en/studies/phd/colloquium/fall-2026.html
+  - https://www.hackevents.net/ch/topics/hardware
+  - https://www.hackevents.net/ch/workshops
+  - https://sita.sipbb.ch/trainings/courses/upcoming-courses/
+  - https://www.innovationparkzurich.com/en/events
+  - https://startup-nights.ch/side-events
+# pages filled by JavaScript: plain HTTP gets no events; read with the headless Chrome of phase 4 (not yet)
+pages_js:
+  - https://darecampus.ch/dare-campus-calendar-2026.html
+  - https://www.meetup.com/zurich-ai-machine-learning-and-computer-vision-meetup/events/
+  - https://www.seca.ch/en/events/
+broad_search_days: 7     # a Claude web search for organisers no list knows, at most this often
+models:
+  extract: haiku          # read a changed page
+  score: sonnet           # score new or changed events
+  search: sonnet          # the broad web search

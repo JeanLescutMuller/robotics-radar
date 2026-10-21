@@ -2,7 +2,8 @@
 
 Luma has no password here: it emails a 6-digit code. login() types the account email, reads ONLY that code email
 (from Luma, received after the request, within 3 minutes) through gws, and types it. Anything else Luma asks for
-(password, Google, CAPTCHA, passkey): stop, never bypass.
+(password, Google, CAPTCHA, passkey): stop, never bypass. Afterwards the login's emails (the codes, "New sign-in to Luma") are
+read, labelled and archived (tidy_inbox): kept, out of the user's Inbox (user, 2026-10-21: jobs clean the inbox after they work).
 """
 import json, re, time
 from common import d_cfg, gws, log
@@ -15,6 +16,33 @@ def logged_in(ch):
     # 2026-10-21; Luma's API on api.lu.ma cannot see that luma.com cookie, so it is no test)
     ch.page.goto('https://luma.com/home', wait_until='domcontentloaded'); ch.page.wait_for_timeout(1500)
     return '/signin' not in ch.page.url
+
+
+LABEL = 'Professional/Robotics'   # the Gmail label of the subject (skill task-management, "Linking")
+LOGIN_MAIL = r'sign-in code|new sign-in to luma|log-?in code|verification code'
+
+
+def tidy_inbox(since_ms, wait_s=0):
+    """Labels, marks read and archives Luma's login emails received since since_ms; waits up to wait_s for a late one
+    ("New sign-in to Luma" comes a few seconds after the login). Never deletes. Gmail scope gmail.modify (gws's login)."""
+    label = next(l['id'] for l in gws('gmail', 'users', 'labels', 'list', '--params', json.dumps({'userId': 'me'}))['labels'] if l['name'] == LABEL)
+    n, s_seen, t_end, notice = 0, set(), time.time() + wait_s, False
+    while True:
+        l = gws('gmail', 'users', 'messages', 'list', '--params', json.dumps(
+            {'userId': 'me', 'q': 'from:(luma.com OR lu.ma OR luma-mail.com) in:inbox newer_than:1d', 'maxResults': 20})).get('messages', [])
+        for m in l:
+            if m['id'] in s_seen: continue
+            s_seen.add(m['id'])
+            d = gws('gmail', 'users', 'messages', 'get', '--params', json.dumps({'userId': 'me', 'id': m['id'], 'format': 'metadata', 'metadataHeaders': ['Subject']}))
+            subject = next((h['value'] for h in d['payload']['headers'] if h['name'] == 'Subject'), '')
+            if int(d['internalDate']) < since_ms or not re.search(LOGIN_MAIL, subject, re.I): continue
+            gws('gmail', 'users', 'messages', 'modify', '--params', json.dumps({'userId': 'me', 'id': m['id']}),
+                '--json', json.dumps({'addLabelIds': [label], 'removeLabelIds': ['INBOX', 'UNREAD']}))
+            n += 1; notice |= 'new sign-in' in subject.lower()
+        if notice or time.time() >= t_end: break
+        time.sleep(5)
+    log(f'luma: {n} login emails labelled {LABEL} and archived')
+    return n
 
 
 def _read_code(since_ms):
@@ -50,4 +78,6 @@ def login(ch):
     ok = logged_in(ch)
     if not ok: ch.shot('luma_login_failed'); log(f'luma: still logged out after the code; inputs were {l_inputs}')
     else: log('luma: logged in with the email code')
+    try: tidy_inbox(since_ms, wait_s=30 if ok else 0)
+    except Exception as e: log(f'luma: inbox not tidied: {e}')   # never fails the run
     return ok

@@ -1,18 +1,23 @@
 """The radar's own headless Chrome (skill chrome-headless; model: ~/dev/marketplace-seller/src/engine_chrome.py).
 
-No window, ever. Its own data folder <root>/chrome/ (logged in to Luma by luma.py, never the user's profiles), attached
+No window, ever. Its own data folder ~/opt/robotics-radar/chrome/ (logged in to Luma by luma.py, never the user's profiles), attached
 with Playwright's connect_over_cdp; `--disable-blink-features=AutomationControlled` and a normal user agent so pages see a
-normal Chrome. Quit at the end of every use, and checked: no process left on the data folder.
+normal Chrome. Quit at the end of every use, also on an error or a kill (SIGTERM), and checked: no process left on the data folder.
+Screenshots older than KEEP_SHOTS_DAYS are deleted at each start.
 
 Use:    with Chrome() as ch: ch.page.goto(...); ch.shot('name')     (raises Busy when another run has it open)
 """
-import os, re, subprocess, time
+import os, re, signal, subprocess, sys, time
 from datetime import datetime
 from playwright.sync_api import sync_playwright
-from common import ROOT, STATE, log
+from pathlib import Path
+from common import STATE, log
 
-PROFILE = ROOT / 'chrome'
+# one data folder, one Luma login, for the job and for runs by hand in ~/dev (AGENTS.md): another folder would log in again,
+# and every login sends the user sign-in emails. Busy (below) keeps two runs apart.
+PROFILE = Path.home() / 'opt/robotics-radar/chrome'
 SHOTS = STATE / 'shots'
+KEEP_SHOTS_DAYS = 30   # stage B's screenshots: looked at during the trust ramp (2 weeks, DESIGN.md §5), then of no use
 CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 
 
@@ -22,7 +27,9 @@ class Busy(Exception):
 
 class Chrome:
     def __enter__(self):
-        PROFILE.mkdir(exist_ok=True); SHOTS.mkdir(parents=True, exist_ok=True)
+        PROFILE.mkdir(parents=True, exist_ok=True); SHOTS.mkdir(parents=True, exist_ok=True)
+        for f in SHOTS.glob('*.png'):
+            if f.stat().st_mtime < time.time() - KEEP_SHOTS_DAYS * 86400: f.unlink()
         lock = PROFILE / 'SingletonLock'   # Chrome's own lock while it runs: a link to "<host>-<pid>"
         if lock.is_symlink():
             try: os.kill(int(os.readlink(lock).rsplit('-', 1)[-1]), 0); raise Busy("the radar's Chrome is already open")
@@ -35,16 +42,22 @@ class Chrome:
                                       '--no-default-browser-check', f'--user-agent={ua}', '--lang=en-US', '--window-size=1440,900',
                                       '--disable-blink-features=AutomationControlled', 'about:blank'],
                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # a kill (job-runner's timeout, `kill <pid>`) becomes a normal exit, so __exit__ still quits Chrome
+        signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
+        try: self._attach(port_file)
+        except BaseException: self._quit(); raise   # __exit__ is not called when __enter__ fails: quit here
+        return self
+
+    def _attach(self, port_file):
         for _ in range(80):   # Chrome writes its random local debugging port here once it listens
             if port_file.exists() and port_file.read_text().strip(): break
             time.sleep(0.25)
-        else: self._quit(); raise RuntimeError('Chrome did not start')
+        else: raise RuntimeError('Chrome did not start')
         self.pw = sync_playwright().start()
         self.browser = self.pw.chromium.connect_over_cdp(f'http://127.0.0.1:{port_file.read_text().split()[0]}')
         self.ctx = self.browser.contexts[0]
         self.page = self.ctx.pages[0] if self.ctx.pages else self.ctx.new_page()
         self.page.set_default_timeout(20_000)
-        return self
 
     def shot(self, name):
         # a screenshot file to look at, instead of a window
@@ -61,5 +74,5 @@ class Chrome:
 
     def __exit__(self, *exc):
         try: self.browser.close(); self.pw.stop()
-        except Exception: pass
+        except BaseException: pass
         self._quit()

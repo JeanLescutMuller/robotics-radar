@@ -243,8 +243,12 @@ for e in all_events():
         continue
     if not l_tid and not {r[0] for r in db.execute('SELECT source FROM keys WHERE event_id=?', (e['event_id'],))} - {'todoist'}:
         # made from a task that now matches a better event, or is gone: no source keeps this event's facts up to date, so its entry
-        # goes (2026-10-21: 12 entries of deleted ChatGPT tasks stayed "time not confirmed"); a source that finds it again re-adds it
-        if e['event_id'] in d_entry: plan(e, 'remove_calendar', f"{SHARED}|{d_entry[e['event_id']]['id']}", why='its task is gone: no source keeps it up to date')
+        # goes (2026-10-21: 12 entries of deleted ChatGPT tasks stayed "time not confirmed"); a source that finds it again re-adds it.
+        # Never one the user is in (registered by email, or accepted in their calendar): it stays as it is
+        ce = d_entry.get(e['event_id'])
+        in_it = e['user_state'] in ('registered', 'pending', 'waitlist') or any(
+            a.get('email') == d_cfg['calendar']['invite_email'] and a.get('responseStatus') == 'accepted' for a in (ce or {}).get('attendees', []))
+        if ce and not in_it: plan(e, 'remove_calendar', f"{SHARED}|{ce['id']}", why='its task is gone: no source keeps it up to date')
         continue
     if len(l_tid) > 1: plan(e, 'merge_tasks', ' '.join(l_tid), why='two event tasks for one event')
     # no event task is made here: stage B makes one only for an event the user accepted and the radar could not register (user, 2026-10-21)

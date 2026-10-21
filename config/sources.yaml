@@ -22,6 +22,13 @@ pages:
   - https://sita.sipbb.ch/trainings/courses/upcoming-courses/
   - https://www.innovationparkzurich.com/en/events
   - https://startup-nights.ch/side-events
+  # one event's own page: events ChatGPT found, kept on the shared calendar when its tasks were deleted (2026-10-21); remove once past
+  - https://www.eventbrite.com/e/wow2-space-mensch-und-all-tickets-2002542231722
+  - https://www.epfl.ch/campus/art-culture/museum-exhibitions/archizoom/stefana-parascho-2/
+  - https://www.eventbrite.co.uk/e/future-of-sustainability-robotics-2026-tickets-2000008869367
+  - https://ethz.ch/de/news-und-veranstaltungen/veranstaltungen/eth-open-i.html
+  - https://events.abb.com/passion4automationday/ch/166872
+  - https://www.dsi.uzh.ch/de/current/events/public-lecture-subject-values-of-choices.html
 # pages filled by JavaScript: plain HTTP gets no events; read with the headless Chrome of phase 4 (not yet)
 pages_js:
   - https://darecampus.ch/dare-campus-calendar-2026.html

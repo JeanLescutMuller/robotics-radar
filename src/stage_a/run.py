@@ -241,8 +241,11 @@ for e in all_events():
     if end < TODAY:
         for tid in l_tid: plan(e, 'delete_task', tid, why=f'event ended {end}')
         continue
-    if not l_tid and e['event_id'] not in d_entry and not {r[0] for r in db.execute('SELECT source FROM keys WHERE event_id=?', (e['event_id'],))} - {'todoist'}:
-        continue   # made from a task that now matches a better event (or is gone), never shown: nothing to plan
+    if not l_tid and not {r[0] for r in db.execute('SELECT source FROM keys WHERE event_id=?', (e['event_id'],))} - {'todoist'}:
+        # made from a task that now matches a better event, or is gone: no source keeps this event's facts up to date, so its entry
+        # goes (2026-10-21: 12 entries of deleted ChatGPT tasks stayed "time not confirmed"); a source that finds it again re-adds it
+        if e['event_id'] in d_entry: plan(e, 'remove_calendar', f"{SHARED}|{d_entry[e['event_id']]['id']}", why='its task is gone: no source keeps it up to date')
+        continue
     if len(l_tid) > 1: plan(e, 'merge_tasks', ' '.join(l_tid), why='two event tasks for one event')
     # no event task is made here: stage B makes one only for an event the user accepted and the radar could not register (user, 2026-10-21)
     # the shared calendar: every event still open to the user (or that they are in); the user is invited unless they have their own entry

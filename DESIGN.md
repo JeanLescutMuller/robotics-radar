@@ -108,7 +108,7 @@ src/run.py ── collect.py ──┬─ luma()      Luma's public API: categor
 | Luma's public API (`api.lu.ma`), no browser | gives free/price, sold out, approval, waitlist, spots [verified 2026-10-21] | Luma search: needs a login (phase 4's Chrome) |
 | a listing page is read by Claude only when its text changed | the daily cost is near zero when nothing moved | a parser per site: brittle, many sites |
 | JavaScript-only pages (DARE, Meetup, SECA) listed apart, not read | plain HTTP gets no events [verified 2026-10-21] | read them now: needs the headless Chrome of phase 4 |
-| events known only from a task (ChatGPT's) are tracked from the task | the past-task and calendar rules apply to them too | ignore them until a source finds them |
+| events known only from a task (ChatGPT's) are tracked from the task; once the task is gone, their shared-calendar entry is removed (2026-10-21) | the past-task and calendar rules apply to them too; without the task nothing keeps the entry up to date | ignore them until a source finds them; keep the entry unmaintained |
 | the job is installed in phase 2, dry-run | a week of daily comparisons without anyone running it | run by hand daily |
 
 ## 8. Changed from ChatGPT's handover

@@ -38,6 +38,12 @@ CREATE TABLE IF NOT EXISTS pages (url TEXT PRIMARY KEY, hash TEXT, events TEXT, 
 CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);''')
 RUN_TS = int(time.time()); RUN_DT = datetime.fromtimestamp(RUN_TS, timezone.utc).isoformat(timespec='seconds')
 db.execute("INSERT OR IGNORE INTO meta VALUES ('phase2_start', ?)", (str(RUN_TS),))
+db.execute("INSERT OR IGNORE INTO meta VALUES ('db_id', ?)", (__import__('secrets').token_hex(3),))
+DB_ID = write.DB_ID = db.execute("SELECT v FROM meta WHERE k='db_id'").fetchone()[0]
+def own_id(text):
+    # "Robotics Radar event: <db_id>-<n>" in what the radar wrote: the event itself, no matching needed
+    m = re.search(rf'Robotics Radar event: {DB_ID}-(\d+)', text or '')
+    return int(m[1]) if m and db.execute('SELECT 1 FROM events WHERE event_id=?', (int(m[1]),)).fetchone() else None
 l_cost, l_errors = [], []
 COLS = [r[1] for r in db.execute('PRAGMA table_info(events)')]
 
@@ -119,7 +125,7 @@ d_task_by_id = {t['id']: t for t in l_tasks}
 for t in l_tasks:
     start, end = parse_event_dates(t['description'])
     tv = {'title': t['content'], 'start': start, 'urls': urls_in(t['description'])}
-    eid = next((e['event_id'] for e in all_events() if same_event(tv, match_view(e), s_listing)), None)
+    eid = own_id(t['description']) or next((e['event_id'] for e in all_events() if same_event(tv, match_view(e), s_listing)), None)
     if eid is None:   # an event only the task knows (found by ChatGPT): tracked from the task
         score = re.search(r'Score:?\s*(\d+)\s*/\s*100', t['description'])
         eid = upsert(dict(source='todoist', key=t['id'], title=clean_title(t['content']),
@@ -141,7 +147,7 @@ for d_cal in gws('calendar', 'calendarList', 'list')['items']:
             s_ical.add(ce.get('iCalUID'))
             s = ce.get('start', {})
             cv = {'title': ce.get('summary', ''), 'start': day(s.get('date') or s.get('dateTime')), 'urls': urls_in(ce.get('description', ''))}
-            eid = next((e['event_id'] for e in all_events() if same_event(cv, match_view(e), s_listing)), None)
+            eid = own_id(ce.get('description')) or next((e['event_id'] for e in all_events() if same_event(cv, match_view(e), s_listing)), None)
             if eid is None: continue
             radar = d_cfg['calendar']['marker'] in (ce.get('description') or '') or ce.get('summary', '').startswith(d_cfg['calendar']['title_prefix'].strip())
             prev = db.execute('SELECT calendar_ids FROM events WHERE event_id=?', (eid,)).fetchone()[0]

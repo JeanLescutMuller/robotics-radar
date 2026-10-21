@@ -76,7 +76,7 @@ def urls_in(text):
 
 def norm_tokens(title):
     title = unicodedata.normalize('NFKD', title).encode('ascii', 'ignore').decode().lower()
-    title = re.sub(r'\[robotics radar\]|^robotics - |^professional/robotics', ' ', title)
+    title = re.sub(r'\[robotics radar\]|^robotics - |^professional/robotics|\(time not confirmed\)', ' ', title)
     return [w for w in re.findall(r'[a-z0-9]+', title) if w not in STOP and (len(w) > 1 or w.isdigit())]
 
 

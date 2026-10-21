@@ -8,6 +8,7 @@ from pathlib import Path
 from common import TZ, d_cfg, gws, log
 
 API = 'https://api.todoist.com/api/v1'
+DB_ID = ''   # set by run.py: this state's id, so an event id written in Todoist or Calendar is never read by another state (~/dev vs ~/opt)
 CAP = {'create_task': 15, 'add_calendar': 40, 'delete_task': 10, 'remove_calendar': 10, 'update_task': 15}   # more = a matching bug
 
 
@@ -36,7 +37,7 @@ def task_description(e, act, today, source):
           f"**Done when:** {'attendance planned' if act.startswith(('plan', 'confirm')) else 'registered (confirmation received) or decided not to go'}.", '',
           '**History**', f'- {today}: discovered by Robotics Radar ({source}).', '',
           f"Official / registration: [{e['title']}]({e['reg_url'] or e['url']})" if (e['reg_url'] or e['url']) else 'No official page found yet.',
-          f"Robotics Radar event: {e['event_id']}", '',
+          f"Robotics Radar event: {DB_ID}-{e['event_id']}", '',
           '<metadata>', 'created_by: job robotics-radar · chan-lescut-macbook-pro', d_cfg['todoist']['description_prefix']]
     if e['deadline']: l.append(f"not_after: {e['deadline'][:10]}[Europe/Zurich]")
     return '\n'.join(l + ['</metadata>'])   # the metadata block, last (skill task-management, 2026-10-21)
@@ -51,7 +52,7 @@ def calendar_body(e, task_id):
                       f"Registration page: {e['reg_url'] or 'unknown'}", f"Official page: {e['url'] or 'unknown'}", '',
                       (e['summary'] or '')[:600], '',
                       f"Todoist: https://app.todoist.com/app/task/{task_id}" if task_id else '',
-                      f"Discovered: {e['first_seen'][:10]}", d_cfg['calendar']['marker']])
+                      f"Discovered: {e['first_seen'][:10]}", f"Robotics Radar event: {DB_ID}-{e['event_id']}", d_cfg['calendar']['marker']])
     body = {'summary': title, 'description': desc, 'colorId': d_cfg['calendar']['color_id'], 'location': '' if e['online'] else (e['venue'] or e['city'] or '')}
     if whole_day:
         end = date.fromisoformat((e['end'] or e['start'])[:10]) + timedelta(days=1)    # Google's whole-day end is the next day

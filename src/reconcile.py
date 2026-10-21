@@ -21,7 +21,7 @@ l_items = []   # dicts: kind, ext_id, title, start, end, urls, extra
 def read_todoist():
     l_tasks = todoist_get(f"tasks?section_id={d_cfg['todoist']['section_id']}&limit=200")
     for d_t in l_tasks:
-        if not d_t['description'].startswith(d_cfg['todoist']['description_prefix']): continue   # other subsections: not event tasks
+        if d_cfg['todoist']['description_prefix'] not in d_t['description'].split('\n'): continue   # other subsections: not event tasks
         start, end = parse_event_dates(d_t['description'])
         l_items.append(dict(kind='task', ext_id=d_t['id'], title=d_t['content'], start=start, end=end,
                             urls=urls_in(d_t['description']), extra={'due': (d_t.get('due') or {}).get('date')}))

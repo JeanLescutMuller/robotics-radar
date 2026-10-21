@@ -28,9 +28,7 @@ def _when(e):
 
 
 def task_description(e, act, today, source):
-    l = [d_cfg['todoist']['description_prefix']]
-    if e['deadline']: l.append(f"not_after: {e['deadline'][:10]}[Europe/Zurich]")
-    l += ['', f"Event: {_when(e)}, {e['venue'] or e['city'] or ('online' if e['online'] else 'venue not published')}. "
+    l = [f"Event: {_when(e)}, {e['venue'] or e['city'] or ('online' if e['online'] else 'venue not published')}. "
               f"Score {e['score']}/100: {e['score_reason'] or ''}",
           f"Organizer: {e['organizer'] or 'unknown'}. Price: {'free' if e['is_free'] else e['price'] or 'unknown'}. Registration: {e['reg_state']}.",
           "This task's due date is the SAFETY DATE to act, not the event date.", '',
@@ -38,8 +36,10 @@ def task_description(e, act, today, source):
           f"**Done when:** {'attendance planned' if act.startswith(('plan', 'confirm')) else 'registered (confirmation received) or decided not to go'}.", '',
           '**History**', f'- {today}: discovered by Robotics Radar ({source}).', '',
           f"Official / registration: [{e['title']}]({e['reg_url'] or e['url']})" if (e['reg_url'] or e['url']) else 'No official page found yet.',
-          f"Robotics Radar event: {e['event_id']}"]
-    return '\n'.join(l)
+          f"Robotics Radar event: {e['event_id']}", '',
+          '<metadata>', 'created_by: job robotics-radar · chan-lescut-macbook-pro', d_cfg['todoist']['description_prefix']]
+    if e['deadline']: l.append(f"not_after: {e['deadline'][:10]}[Europe/Zurich]")
+    return '\n'.join(l + ['</metadata>'])   # the metadata block, last (skill task-management, 2026-10-21)
 
 
 def calendar_body(e, task_id):
@@ -97,7 +97,9 @@ def execute(db, l_plan, d_task_by_id, run_ts, run_dt, sources_of):
                 line = f"- {today}: {d['why']}; title changed by Robotics Radar."
                 if '**History**' in desc:   # append to the History list, keep everything else as it is
                     desc = re.sub(r'(\*\*History\*\*\n(?:- [^\n]*\n?)*)', lambda m: m[1].rstrip('\n') + '\n' + line + '\n', desc, count=1)
-                else: desc = desc.rstrip('\n') + '\n\n**History**\n' + line
+                else:   # before the metadata block, which stays last
+                    body, sep, meta = desc.partition('\n\n<metadata>\n')
+                    desc = body.rstrip('\n') + '\n\n**History**\n' + line + (sep + meta if sep else '')
                 st, _ = _todoist('POST', f'tasks/{target}', {'content': d['new_title'], 'description': desc.rstrip('\n')})
                 st2, t2 = _todoist('GET', f'tasks/{target}')
                 done(e, action, target, bool(t2) and t2['content'] == d['new_title'] and line in t2['description'], f'HTTP {st}/{st2}')

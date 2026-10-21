@@ -109,7 +109,7 @@ src/run.py ── collect.py ──┬─ luma()      Luma's public API: categor
 | Handover said | Now | Why |
 |---|---|---|
 | Todoist "Robotics project" (its id) | that id is the Project **Professional**; event tasks go in its Section **Robotics** | Todoist reorganised on 2026-10-19 (skill `task-management`) |
-| description starts `Stream: Robotics - Events` | starts `Subsection: Events` | the `Stream:` line no longer exists; ChatGPT's own tasks already use `Subsection: Events` |
+| description starts `Stream: Robotics - Events` | `Subsection: Events` in the metadata block at the end of the Description (after `created_by:`) | the `Stream:` line no longer exists; since 2026-10-21 the metadata lines go in a `<metadata>` … `</metadata>` block, last (skill `task-management`) |
 | ids in `config.example.yaml` | in `~/.config/robotics-radar/config.yaml` | public repo (§6) |
 | `docs/MIGRATION.md` | §7 | one plan |
 | notify on new ≥75 events | not built yet | §9 |

@@ -60,7 +60,7 @@ def match_view(e):   # what same_event() compares
 # every task of the Section is matched (an event may be a task of another subsection, e.g. Swiss Robotics Day);
 # only event tasks (subsection Events) are created, updated or deleted by the radar
 l_all_tasks = todoist_get(f"tasks?section_id={d_cfg['todoist']['section_id']}&limit=200")
-l_tasks = [t for t in l_all_tasks if t['description'].startswith(d_cfg['todoist']['description_prefix'])]
+l_tasks = [t for t in l_all_tasks if d_cfg['todoist']['description_prefix'] in t['description'].split('\n')]   # the line, in the metadata block
 l_slugs = sorted({u.split('/')[1] for t in l_tasks for u in urls_in(t['description']) if u.startswith('luma.com/') and u.count('/') == 1})
 l_cand = []
 for name, f in (('luma', lambda: collect.luma(db, l_slugs)), ('voxel51', lambda: collect.voxel51(db)), ('pages', lambda: collect.pages(db, l_cost))):

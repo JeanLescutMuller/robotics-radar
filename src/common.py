@@ -106,7 +106,11 @@ def similarity(t1, t2):
 def same_event(a, b, s_listing_urls=frozenset()):
     """a, b: dicts with title, start (date or None), urls (set). A page linked from several events is a listing, not one event's page."""
     close = not (a['start'] and b['start']) or abs((a['start'] - b['start']).days) <= 1
-    if (a['urls'] & b['urls']) - s_listing_urls and close and similarity(a['title'], b['title']) >= 0.3: return True
+    shared = (a['urls'] & b['urls']) - s_listing_urls
+    # one event's own page and the same day: the same event, however the titles differ (2026-10-21: ChatGPT's task "Voxel51 Dec 10
+    # Physical AI/CV meetup" vs Voxel51's "AI, ML and Computer Vision Meetup - December 10, 2026" made a duplicate calendar entry)
+    if shared and a['start'] and a['start'] == b['start']: return True
+    if shared and close and similarity(a['title'], b['title']) >= 0.3: return True
     if a['start'] and b['start']:
         # same day and two shared words is enough: a talk's title vs a task named after its speaker ("UZH aerial manipulation colloquium")
         if a['start'] == b['start'] and len(set(norm_tokens(a['title'])) & set(norm_tokens(b['title']))) >= 2 and similarity(a['title'], b['title']) >= 0.4: return True

@@ -86,6 +86,8 @@ def execute(db, l_plan, d_task_by_id, run_ts, run_dt, sources_of, body_of):
             elif action == 'update_calendar':   # never the guest list: the user's answer stays (a new time makes Google ask again)
                 cal, ev_id = target.split('|')
                 body = {k: v for k, v in body_of(e).items() if k in d['fields']}
+                for k in ('start', 'end'):   # a patch merges: clear the other kind, or whole day → timed fails "Invalid start time"
+                    if k in body: body[k] = ({'date': None} | body[k]) if 'dateTime' in body[k] else ({'dateTime': None, 'timeZone': None} | body[k])
                 gws('calendar', 'events', 'patch', '--params', json.dumps({'calendarId': cal, 'eventId': ev_id, 'sendUpdates': 'none'}), '--json', json.dumps(body))
                 ce2 = gws('calendar', 'events', 'get', '--params', json.dumps({'calendarId': cal, 'eventId': ev_id}))
                 done(e, action, target, not entry_diff(ce2, body_of(e)), ','.join(d['fields']))

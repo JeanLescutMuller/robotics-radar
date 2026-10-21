@@ -51,4 +51,4 @@ mkdir -p "$(dirname "$AGENT")"
 ln -sfn "$DST/$NAME.plist" "$AGENT"
 launchctl bootout "gui/$UID/$NAME" 2>/dev/null || true
 launchctl bootstrap "gui/$UID" "$AGENT"
-echo "deployed $(cat "$DST/DEPLOYED"); job $NAME loaded (dry-run: plans only)"
+echo "deployed $(cat "$DST/DEPLOYED"); job $NAME loaded; $(grep -q "^dry_run: false" "$HOME/.config/robotics-radar/config.yaml" && echo "WRITES ON (Todoist, Couple calendar)" || echo "dry-run: plans only")"

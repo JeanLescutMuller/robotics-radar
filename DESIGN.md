@@ -79,8 +79,8 @@ The repo stays public. `~/.config/robotics-radar/config.yaml` (chmod 600) holds 
 |---|---|---|---|---|
 | 0 | this design; ids moved to `~/.config/robotics-radar/` | none | committed (2026-10-20) ✅ | — |
 | 1 | read all calendars and Professional › Robotics; check the historical leads; fill SQLite (`src/reconcile.py`) ✅ 2026-10-21 | none: a report; then the 4 tasks of past events deleted with the user's OK | every event task and Couple event matched to one event, the doubts listed | read one table |
-| 2 | steps 1–4 in dry-run, side by side with ChatGPT for about a week; the job installed in dry-run (it only plans) | none | the radar finds at least what ChatGPT finds, no duplicate in its dry-run writes | look at one comparison |
-| 3 | Calendar and Todoist writes on | Calendar, Todoist | a week of runs, every write read back, no duplicate; **the user turns off the ChatGPT schedule** | 1 min |
+| 2 | steps 1–4 in dry-run; the job installed ✅ 2026-10-21. Shortened (user, 2026-10-21): ChatGPT runs in dry-run instead and posts its plan as a Todoist comment; each run compares | none | the radar finds at least what ChatGPT finds, no duplicate in its dry-run writes | look at one comparison |
+| 3 | Calendar and Todoist writes on ✅ 2026-10-21 (first run: 5 tasks, 25 Couple entries, all read back; a second run planned nothing) | Calendar, Todoist | every write read back, no duplicate; after a week of daily comparisons, **the user turns off the ChatGPT schedule** | 1 min |
 | 4 | registration, auto group, screenshots only, then on; then ask first | registrations | 10 confirmed registrations, none wrong | log in once to each site; look at screenshots |
 | 5 | notifications through alerting | — | waits for alerting (§9) | — |
 

@@ -7,7 +7,9 @@ luma:
   place: zurich
   countries: [Switzerland, Schweiz, Suisse]
   # Luma organiser calendars always read in full (their slugs); every organiser of a good event is added in state
-  calendars: [dream-machines, ventourage]   # ventourage: SURGE (2026-10-21)
+  calendars: [dream-machines]
+  # single Luma events (their slugs) that no calendar above lists, read every run: SURGE (2026-10-21; remove once past)
+  events: [tn3ix6hn]
 voxel51:
   sanity_url: https://h6toihm1.api.sanity.io/v2021-10-21/data/query/production
   keep_if: '(?i)online|zoom|virtual|zurich|zürich|switzerland'

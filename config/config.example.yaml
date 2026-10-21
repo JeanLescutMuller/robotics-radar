@@ -20,7 +20,8 @@ form:                            # answers the radar may put on a registration f
   email: <you>+events@gmail.com
   first_name: <first name>
   last_name: <last name>
-  company_role: <to be decided, DESIGN.md open points>
+  company: <company>
+  role: <role>
   linkedin: <profile URL>
 registration:
   submit: false                  # stop before the final click, save a screenshot (DESIGN.md §5)

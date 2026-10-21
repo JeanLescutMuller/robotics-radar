@@ -60,7 +60,7 @@ First fill (phase 1): from Todoist Professional › Robotics, the calendars and 
 
 | Group | When | What the radar does |
 |---|---|---|
-| **auto** | free (price 0 on the official page), registration open (or a waitlist), score ≥75, the form asks only for known answers (name, email, company/role, LinkedIn), no new account | registers; waits for the confirmation email; the event task becomes `: confirm attendance` or `: check application status`; the Calendar rule of `REQUIREMENTS.md` then applies |
+| **auto** | free (price 0 on the official page), registration open (or a waitlist), score ≥75, the form asks only for known answers (name, email, company/role, LinkedIn), no new account | registers; waits for the confirmation email; the event task becomes `: confirm attendance` or `: check application status`; its Couple event says "registered" |
 | **ask first** | as auto, but the form has a free-text question ("why do you want to join?") | writes the answers (skill `writing-for-others`) in a comment on the event task, retitles it `: approve my answers`; the user's "ok" in a comment → the next run submits |
 | **never** | paid, a new account needed, a password or a CAPTCHA, invitation code, unclear eligibility | event task only, as today |
 
@@ -71,7 +71,7 @@ First fill (phase 1): from Todoist Professional › Robotics, the calendars and 
 
 ## 6. Personal values and secrets: outside the repo (user, 2026-10-20)
 
-The repo stays public. `~/.config/robotics-radar/config.yaml` (chmod 600) holds the Couple calendar id, the Todoist project and section ids, the form answers; `config/config.example.yaml` shows the keys with placeholders. Tokens: `gws`'s own login; the Todoist token in `~/.config/robotics-radar/todoist_token.env` (its own file, never another project's). The Chrome profile in `~/opt/robotics-radar/chrome/`, never committed. The calendar and Todoist ids are still in this repo's early commits: harmless alone (they give no access), so history is not rewritten.
+The repo stays public. `~/.config/robotics-radar/config.yaml` (chmod 600) holds the Couple calendar id, the Todoist project and section ids, the form answers; `config/config.example.yaml` shows the keys with placeholders. Tokens: `gws`'s own login; the Todoist token is read (never printed, never copied) from `~/.config/task-management/todoist_token.env`, as skill task-management's `references/todoist_api.md` says for scripts and jobs. The Chrome profile in `~/opt/robotics-radar/chrome/`, never committed. The calendar and Todoist ids are still in this repo's early commits: harmless alone (they give no access), so history is not rewritten.
 
 ## 7. Phases
 
@@ -105,9 +105,15 @@ Not built (user, 2026-10-20): `~/dev/alerting` will carry them once its channels
 - Each registration has its confirmation email in the `registrations` table, and its event task says the next step.
 - No personal value in `git grep` (ids, email, answers).
 
+## Answered points (user, 2026-10-21)
+
+| Was open | Answer |
+|---|---|
+| Gmail label for the `+events` replies | `Professional/Robotics/Events`, with a filter on the `+events` address |
+| company/role line on forms | company "Meta", role "Lead Data Scientist" (`form:` in the private config) |
+| event tasks of events now over | deleted by the radar (each run, step 4) |
+| which events go on the calendar | every event the user can still attend or register for, registered or not; one closed to the user is not added, and the radar's own Couple event for it is removed (title prefix and marker `ROBOTICS_RADAR_AUTO`, never a user's own event) |
+
 ## Open points
 
-- The Gmail filter and label for the `+events` replies (`Professional/Robotics/Events`?): the user's OK before creating a label.
-- The company/role line on forms while unemployed (e.g. "ex-Meta, Lead Data Scientist" or the start-up): the user to say.
-- Event tasks of events now over (e.g. 2026-10-16 ERH hackathon): may the radar complete them, or only the user?
-- Keep the Calendar rule "score ≥80 and confirmed" for events not registered, or add only registered ones?
+- Unconfirmed time: a whole-day Couple event "time not confirmed", updated when the time is published [proposed 2026-10-21].

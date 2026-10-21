@@ -11,7 +11,7 @@ Read before working: `REQUIREMENTS.md` (what the user gets), `DESIGN.md` (what w
 - **Never duplicate** an event in any visible calendar, or an event task in Todoist (`REQUIREMENTS.md` Calendar, Todoist).
 - **Registration**: only free events, score ≥75, registration group "auto", or "ask first" after the user's ok (`DESIGN.md` §5). Never pay, never create an account, never type a password, never bypass a CAPTCHA: hand it to the user as a Todoist task.
 - **Notifications are not built** (user, 2026-10-20): they wait for `~/dev/alerting` (Todoist task "Send the radar's notifications through alerting"). Do not add another channel.
-- Event tasks are the user's: no `agent`/`claude`/`chatgpt` labels on them, never complete or delete them.
+- Event tasks are the user's: no `agent`/`claude`/`chatgpt` labels on them, never complete them; delete the task of an event that is over (user, 2026-10-21).
 - Chrome: headless, own data folder `~/opt/robotics-radar/chrome/` (skill `chrome-headless`).
 - Scheduled job: skill `jobs-and-services`, through job-runner, model `~/dev/job-applications/auto-job-apply/`.
 

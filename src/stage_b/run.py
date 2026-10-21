@@ -60,8 +60,10 @@ def save(entry_id, **d):
     db.execute(f"UPDATE registrations SET {', '.join(f'{k}=?' for k in d)} WHERE entry_id=?", (*d.values(), entry_id))
 
 
-def event_task(r):
-    """The event's Todoist task: stage A's (its event id), else one made here (stage A then finds it by the same id)."""
+def event_task(r, todo):
+    """The event's Todoist task, made here when the user must act (todo: what, for the title): the only place event tasks are made
+    (user, 2026-10-21: a task only for an event the user accepted and the radar could not register). An older task of the event (from
+    before, found in stage A's state by the event id) is used instead; stage A finds a task made here by the same id."""
     if r['task_id']: return r['task_id']
     db_id, n = r['event_ref'].rsplit('-', 1)
     try:
@@ -71,20 +73,21 @@ def event_task(r):
             if row and row[0]: return row[0].split()[0]
     except sqlite3.Error as e: log(f'radar.sqlite: {e}')
     if not WRITING: return None
-    desc = '\n'.join([f"Event: {r['start']}[Europe/Zurich]", '', f"**Next step:** the radar registers you (you accepted it in the robotics calendar); answer its comments here.",
-                      '**Done when:** registered (Luma confirmation) or decided not to go.', '', '**History**', f'- {NOW[:10]}: accepted in the calendar; task made by Robotics Radar (stage B).', '',
+    desc = '\n'.join([f"Event: {r['start']}[Europe/Zurich]", '', "You accepted this event in the robotics calendar; the radar could not register you by itself.", '',
+                      f"**Next step:** {todo} (the radar's comment below says how).", '**Done when:** registered (confirmation received) or decided not to go.', '',
+                      '**History**', f'- {NOW[:10]}: accepted in the calendar; task made by Robotics Radar (stage B).', '',
                       f"Official / registration: [{r['title']}]({r['url']})", f"Robotics Radar event: {r['event_ref']}", '',
                       '<metadata>', 'created_by: job robotics-radar.register · chan-lescut-macbook-pro', d_cfg['todoist']['description_prefix'], '</metadata>'])
-    st, t = todoist('POST', 'tasks', {'content': f"{r['title']}: register", 'description': desc, 'project_id': d_cfg['todoist']['project_id'],
+    st, t = todoist('POST', 'tasks', {'content': f"{r['title']}: {todo}", 'description': desc, 'project_id': d_cfg['todoist']['project_id'],
                                       'section_id': d_cfg['todoist']['section_id'], 'due_date': datetime.now(TZ).date().isoformat(), 'priority': 4})
     if not t: l_errors.append(f"task for {r['title']}: HTTP {st}"); return None
     save(r['entry_id'], task_id=t['id'])
     return t['id']
 
 
-def tell(r, text):
-    """A comment on the event task. Returns its posted_at, or None (dry-run or failed)."""
-    tid = event_task(r)
+def tell(r, text, todo='register'):
+    """A comment on the event task (made if needed, titled "<event>: <todo>"). Returns its posted_at, or None (dry-run or failed)."""
+    tid = event_task(r, todo)
     if not WRITING or not tid: log(f"would comment on {r['title']}: {text[:200]}"); return None
     st, c = todoist('POST', 'comments', {'task_id': tid, 'content': text})
     if not c: l_errors.append(f"comment on {r['title']}: HTTP {st}"); return None
@@ -93,7 +96,7 @@ def tell(r, text):
 
 def approval(r):
     """The user's reply after the radar's question: {question number: answer} when it says "ok", else None."""
-    tid = r['task_id'] or event_task(r)
+    tid = r['task_id'] or event_task(r, 'approve the answers')
     if not tid or not r['asked_at']: return None
     l = sorted((c for c in todoist_get(f'comments?task_id={tid}&limit=200') if c['posted_at'] > r['asked_at']
                 and not c['content'].startswith(('RECOMMENDATION', 'RESULT', 'robotics-radar'))), key=lambda c: c['posted_at'])
@@ -124,7 +127,7 @@ def step(r, answer):
     eid, url = r['entry_id'], r['url']
     if answer == 'declined':
         if r['state'] in DONE and r['by_radar']:
-            tell(r, f"robotics-radar {NOW}: you declined \"{r['title']}\" in the calendar, but the radar registered you on Luma ({r['state']}). Cancel it there if you won't go: {url}")
+            tell(r, f"robotics-radar {NOW}: you declined \"{r['title']}\" in the calendar, but the radar registered you on Luma ({r['state']}). Cancel it there if you won't go: {url}", 'cancel the registration')
             save(eid, state='told to cancel'); l_done.append((r, 'told to cancel'))
         return
     if r['state'] in DONE + ('by hand', 'told to cancel') or (r['state'] == 'filled' and not SUBMIT): return
@@ -146,7 +149,7 @@ def step(r, answer):
             l_ans, _ = register.draft(r['title'], l_q)
             asked = tell(r, f"RECOMMENDATION robotics-radar {NOW}: you accepted \"{r['title']}\" ({r['start'][:16].replace('T', ' ')}). Its Luma form asks:\n\n"
                             f"{numbered(l_q, l_ans)}\n\nReply \"ok\" in a comment to send it. To change an answer, add lines like \"2: your answer\" "
-                            f"to the same comment. \"?\" = only you know it: give it, or the radar can't send. {url}")
+                            f"to the same comment. \"?\" = only you know it: give it, or the radar can't send. {url}", 'approve the answers')
             save(eid, state='waiting', grp=grp, why=why, questions=json.dumps(l_q, ensure_ascii=False), answers=json.dumps(l_ans, ensure_ascii=False), asked_at=asked)
             l_done.append((r, 'asked you (Todoist comment)')); return
         l_q, l_ans = json.loads(r['questions']), json.loads(r['answers'])
@@ -154,18 +157,19 @@ def step(r, answer):
             if 1 <= n <= len(l_q): l_ans[n - 1] = [x.strip() for x in re.split(r'[;,]', a)] if l_q[n - 1]['qt'] == 'multi-select' else a
         l_miss = [str(i + 1) for i, (q, a) in enumerate(zip(l_q, l_ans)) if q['required'] and a in (None, '', '?')]
         if l_miss:
-            asked = tell(r, f"robotics-radar {NOW}: still missing for \"{r['title']}\": answer {', '.join(l_miss)}. Reply \"ok\" with lines like \"{l_miss[0]}: your answer\".")
+            asked = tell(r, f"robotics-radar {NOW}: still missing for \"{r['title']}\": answer {', '.join(l_miss)}. Reply \"ok\" with lines like \"{l_miss[0]}: your answer\".", 'approve the answers')
             save(eid, answers=json.dumps(l_ans, ensure_ascii=False), asked_at=asked or r['asked_at']); return
     else:
         l_ans = [register.known(q) for q in l_q]
     state, shot = register.fill(chrome(), url, l_q, l_ans, SUBMIT)
     save(eid, state=state if state in DONE + ('filled',) else 'failed', grp=grp, why=why, answers=json.dumps(l_ans, ensure_ascii=False), shot=str(shot), by_radar=int(state in DONE))
     if state in DONE:
-        tell(r, f"RESULT robotics-radar {NOW}: registration sent on Luma for \"{r['title']}\"; Luma says: {state}. Answers:\n\n{numbered(l_q, l_ans)}")
+        if r['state'] == 'waiting':   # a task exists only when the user was asked: none for an autonomous registration
+            tell(r, f"RESULT robotics-radar {NOW}: registration sent on Luma for \"{r['title']}\"; Luma says: {state}. Answers:\n\n{numbered(l_q, l_ans)}", 'approve the answers')
     elif state == 'filled':
-        tell(r, f"robotics-radar {NOW}: form filled for \"{r['title']}\" but not sent (trust ramp: registration.submit is false). Screenshot on the Mac: {shot}")
+        tell(r, f"robotics-radar {NOW}: form filled for \"{r['title']}\" but not sent (trust ramp: registration.submit is false). Screenshot on the Mac: {shot}", 'check the filled form')
     else:
-        tell(r, f"robotics-radar {NOW}: the radar sent the form for \"{r['title']}\" but Luma shows no confirmation. Check here: {url}")
+        tell(r, f"robotics-radar {NOW}: the radar sent the form for \"{r['title']}\" but Luma shows no confirmation. Check here: {url}", 'check the registration')
         l_errors.append(f"{r['title']}: no confirmation after submit ({shot})")
     l_done.append((r, state))
 

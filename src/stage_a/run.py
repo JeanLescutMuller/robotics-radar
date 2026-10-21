@@ -1,4 +1,5 @@
-"""Stage A, one run (DESIGN.md §1): discover → merge → score → plan the writes (shared calendar, Todoist) → write.
+"""Stage A, one run (DESIGN.md §1): discover → merge → score → plan the writes (the shared calendar; deleting the event tasks of
+events that are over) → write.
 
 Writes only with --write AND dry_run: false in ~/.config/robotics-radar/config.yaml (write.py); otherwise the planned writes
 go to state/radar.sqlite (table plans) and the report only. Each run also compares with ChatGPT's dry-run log (Todoist comments).
@@ -18,10 +19,6 @@ from common import (STATE, TZ, canon_url, claude_json, d_cfg, d_src, gws, log, p
 TODAY = datetime.now(TZ).date()
 RANK = {'luma': 4, 'voxel51': 4, 'page': 3, 'search': 2, 'todoist': 1}   # whose facts win when two sources disagree
 FINGERPRINT = ('start', 'end', 'venue', 'reg_state', 'price')            # a change here = a material change
-ACTION_WORDS = {'confirm attendance': 'confirm', 'check application status': 'status', 'check waitlist status': 'waitlist',
-                'join waitlist': 'waitlist', 'request admission': 'admission', 'register': 'register',
-                'find registration / register': 'register', 'plan attendance': 'plan'}
-
 STATE.mkdir(exist_ok=True); (STATE / 'runs').mkdir(exist_ok=True)
 db = sqlite3.connect(STATE / 'radar.sqlite', isolation_level=None)
 db.executescript('''
@@ -215,26 +212,6 @@ log(f'scored: {len(l_to_score)} events')
 db.execute("INSERT OR IGNORE INTO organizers SELECT 'luma', org_key, organizer FROM events WHERE org_key LIKE 'cal-%' AND score >= ?", (d_cfg['minimum_task_score'],))
 
 # ---------- 5. plan the writes (dry-run) ----------
-def expected_action(e):
-    us, rs = e['user_state'], e['reg_state']
-    if us == 'registered': return 'confirm attendance'
-    if us == 'pending': return 'check application status'
-    if us == 'waitlist': return 'check waitlist status'
-    return {'open': 'register', 'approval': 'request admission', 'waitlist': 'join waitlist', 'none': 'plan attendance'}.get(rs, 'find registration / register')
-
-
-def safety_date(e):
-    # REQUIREMENTS.md Todoist: published cutoff first; else 7 days local, 12 curated, 3 online, 2 no registration; now if full or close
-    start = day(e['start'])
-    lead = 2 if e['reg_state'] == 'none' else 3 if e['online'] else 12 if e['reg_state'] == 'approval' else 7
-    d = start - timedelta(days=lead)
-    if e['deadline']:
-        try: d = min(d, date.fromisoformat(e['deadline'][:10]) - timedelta(days=1))
-        except ValueError: pass
-    if e['reg_state'] in ('waitlist', 'full'): d = TODAY
-    return max(d, TODAY)
-
-
 def closed_to_user(e): return e['reg_state'] in ('full', 'closed') and e['user_state'] not in ('registered', 'pending', 'waitlist')
 
 
@@ -264,18 +241,10 @@ for e in all_events():
     if end < TODAY:
         for tid in l_tid: plan(e, 'delete_task', tid, why=f'event ended {end}')
         continue
-    if not l_tid and not {r[0] for r in db.execute('SELECT source FROM keys WHERE event_id=?', (e['event_id'],))} - {'todoist'}:
-        continue   # made from a task that now matches a better event (or is gone): nothing to plan
-    tracked = bool(l_tid) or (e['score'] or 0) >= d_cfg['minimum_task_score']
-    if not tracked or (e['other_task_ids'] and not l_tid): continue   # followed by a task of another subsection: the user's
-    act = expected_action(e)
+    if not l_tid and e['event_id'] not in d_entry and not {r[0] for r in db.execute('SELECT source FROM keys WHERE event_id=?', (e['event_id'],))} - {'todoist'}:
+        continue   # made from a task that now matches a better event (or is gone), never shown: nothing to plan
     if len(l_tid) > 1: plan(e, 'merge_tasks', ' '.join(l_tid), why='two event tasks for one event')
-    if not l_tid and not closed_to_user(e):
-        plan(e, 'create_task', f"{e['title']}: {act}", due=str(safety_date(e)), score=e['score'], reg_state=e['reg_state'])
-    elif l_tid:
-        title = d_task_by_id[l_tid[0]]['content'].lower()
-        if ACTION_WORDS[act] not in title and act in ('confirm attendance', 'check application status', 'check waitlist status', 'join waitlist'):
-            plan(e, 'update_task', l_tid[0], new_title=f"{e['title']}: {act}", why=f"Luma says {e['user_state'] or e['reg_state']}")
+    # no event task is made here: stage B makes one only for an event the user accepted and the radar could not register (user, 2026-10-21)
     # the shared calendar: every event still open to the user (or that they are in); the user is invited unless they have their own entry
     shown = not closed_to_user(e) and ((e['score'] or 0) >= d_cfg['minimum_task_score'] or e['user_state'] in ('registered', 'pending', 'waitlist'))
     if shown and e['event_id'] not in d_entry:
@@ -329,17 +298,14 @@ L = [f"# Radar run {RUN_DT} ({f'WRITES: {n_written} done, read back' if WRITING 
      row('candidates read', len(l_cand)), row('new events', n_new), row('changed events', len(s_changed)), row('events scored', len(l_to_score)),
      row('broad web search', 'yes' if did_search else 'no'), row('Claude cost (USD, this run)', cost), row('errors', len(l_errors))]
 L += [row(f'planned: {a}', n) for a, n in sorted(d_count.items())]
-for action, head in (('create_task', '| Event date | Score | New task | Safety date | Registration |'), ('update_task', '| Event date | Task | New title | Why |'),
-                     ('delete_task', '| Event | Task | Why |'), ('merge_tasks', '| Event | Tasks | Why |'),
+for action, head in (('delete_task', '| Event | Task | Why |'), ('merge_tasks', '| Event | Tasks | Why |'),
                      ('add_calendar', '| Event date | Score | Calendar title | Whole day | You invited |'), ('update_calendar', '| Event date | Calendar title | Fields |'),
                      ('remove_calendar', '| Event | Entry | Why |')):
     l_rows = [(e, t, d) for e, a, t, d in l_plan if a == action]
     if not l_rows: continue
     L += ['', f'## Planned: {action} ({len(l_rows)})', '', head, '|' + '---|' * head.count(' | ') + '---|']
     for e, t, d in sorted(l_rows, key=lambda x: x[0]['start']):
-        L.append({'create_task': lambda: row(e['start'][:16], e['score'], t, d['due'], d['reg_state']),
-                  'update_task': lambda: row(e['start'][:10], d_task_by_id[t]['content'], d['new_title'], d['why']),
-                  'delete_task': lambda: row(e['title'], d_task_by_id[t]['content'], d['why']),
+        L.append({'delete_task': lambda: row(e['title'], d_task_by_id[t]['content'], d['why']),
                   'merge_tasks': lambda: row(e['title'], t, d['why']),
                   'add_calendar': lambda: row(e['start'][:16], e['score'], d['title'], d['whole_day'], d['invite']),
                   'update_calendar': lambda: row(e['start'][:16], e['title'], ', '.join(d['fields'])),

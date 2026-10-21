@@ -25,6 +25,7 @@ form:                            # answers the radar may put on a registration f
   company: <company>
   role: <role>
   linkedin: <profile URL>
+  phone: "<+41 …>"              # only on forms that require one
 registration:
   submit: false                  # stop before the final click, save a screenshot (DESIGN.md §5)
 dry_run: true

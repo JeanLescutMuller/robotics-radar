@@ -1,6 +1,7 @@
 """Stage A: carry out a run's planned writes (Todoist, the shared calendar), each one read back. Called by run.py with --write.
 
-Only these actions write: create_task, update_task, delete_task, add_calendar, update_calendar, remove_calendar. merge_tasks is never automatic.
+Only these actions write: delete_task (an event that is over), add_calendar, update_calendar, remove_calendar. merge_tasks is never automatic.
+Event tasks are made by stage B only (user, 2026-10-21).
 The shared calendar is public: calendar_body() writes only the event's own facts. The user is a guest of each entry (an invitation in
 their own calendar) unless they already have their own entry for it: their "accept" is what stage B registers for.
 """
@@ -9,27 +10,8 @@ from datetime import date, datetime, timedelta, timezone
 from common import TZ, d_cfg, gws, log, todoist
 
 DB_ID = ''   # set by run.py: this state's id, so an event id written in Todoist or Calendar is never read by another state (~/dev vs ~/opt)
-CAP = {'create_task': 15, 'add_calendar': 60, 'update_calendar': 60, 'delete_task': 10, 'remove_calendar': 50, 'update_task': 15}   # more = a bug
+CAP = {'add_calendar': 60, 'update_calendar': 60, 'delete_task': 10, 'remove_calendar': 50}   # more = a bug
 # remove_calendar 50: the one-off move of the radar's entries out of the Couple calendar (2026-10-21); only radar entries, by marker
-
-
-def _when(e):
-    return f"{e['start']}" + (f" to {e['end']}" if e['end'] else '') + '[Europe/Zurich]'
-
-
-def task_description(e, act, today, source):
-    l = [f"Event: {_when(e)}, {e['venue'] or e['city'] or ('online' if e['online'] else 'venue not published')}. "
-              f"Score {e['score']}/100: {e['score_reason'] or ''}",
-          f"Organizer: {e['organizer'] or 'unknown'}. Price: {'free' if e['is_free'] else e['price'] or 'unknown'}. Registration: {e['reg_state']}.",
-          "This task's due date is the SAFETY DATE to act, not the event date.", '',
-          f"**Next step:** {act} on the official page.",
-          f"**Done when:** {'attendance planned' if act.startswith(('plan', 'confirm')) else 'registered (confirmation received) or decided not to go'}.", '',
-          '**History**', f'- {today}: discovered by Robotics Radar ({source}).', '',
-          f"Official / registration: [{e['title']}]({e['reg_url'] or e['url']})" if (e['reg_url'] or e['url']) else 'No official page found yet.',
-          f"Robotics Radar event: {DB_ID}-{e['event_id']}", '',
-          '<metadata>', 'created_by: job robotics-radar · chan-lescut-macbook-pro', d_cfg['todoist']['description_prefix']]
-    if e['deadline']: l.append(f"not_after: {e['deadline'][:10]}[Europe/Zurich]")
-    return '\n'.join(l + ['</metadata>'])   # the metadata block, last (skill task-management, 2026-10-21)
 
 
 FOOTER = 'Updated automatically every day by Robotics Radar. Details change: check the official page before you go.'
@@ -80,7 +62,7 @@ def execute(db, l_plan, d_task_by_id, run_ts, run_dt, sources_of, body_of):
     over = {a: n for a, n in d_n.items() if a in CAP and n > CAP[a]}
     if over: return 0, [f'write refused: too many planned writes {over} (cap {CAP}): a matching bug?']
     db.execute('CREATE TABLE IF NOT EXISTS writes (ts INT, dt TEXT, event_id INT, action TEXT, target TEXT, ok INT, readback TEXT)')
-    today = datetime.now(TZ).date().isoformat(); n_ok = 0; l_err = []
+    n_ok = 0; l_err = []
 
     def done(e, action, target, ok, readback):
         nonlocal n_ok
@@ -88,31 +70,9 @@ def execute(db, l_plan, d_task_by_id, run_ts, run_dt, sources_of, body_of):
         if ok: n_ok += 1
         else: l_err.append(f"{action} {e['title']}: {readback[:200]}")
 
-    for e, action, target, d in sorted(l_plan, key=lambda p: ['delete_task', 'create_task', 'update_task', 'add_calendar', 'update_calendar', 'remove_calendar', 'merge_tasks'].index(p[1])):
+    for e, action, target, d in sorted(l_plan, key=lambda p: ['delete_task', 'add_calendar', 'update_calendar', 'remove_calendar', 'merge_tasks'].index(p[1])):
         try:
-            if action == 'create_task':
-                due = date.fromisoformat(d['due']); days = (due - date.fromisoformat(today)).days
-                body = {'content': target, 'description': task_description(e, target.split(': ')[-1], today, sources_of(e['event_id'])),
-                        'project_id': d_cfg['todoist']['project_id'], 'section_id': d_cfg['todoist']['section_id'],
-                        'due_date': d['due'], 'priority': 4 if days <= 1 else 3 if days <= 7 else 2}   # API: 4 = P1
-                st, t = todoist('POST', 'tasks', body)
-                st2, t2 = todoist('GET', f"tasks/{t['id']}") if t else (st, None)
-                ok = bool(t2) and t2['content'] == target and t2['section_id'] == d_cfg['todoist']['section_id']
-                if ok: db.execute('UPDATE events SET task_id=? WHERE event_id=?', (t['id'], e['event_id']))
-                done(e, action, t['id'] if t else '', ok, f'HTTP {st}/{st2}')
-            elif action == 'update_task':
-                st0, t0 = todoist('GET', f'tasks/{target}')
-                desc = t0['description']
-                line = f"- {today}: {d['why']}; title changed by Robotics Radar."
-                if '**History**' in desc:   # append to the History list, keep everything else as it is
-                    desc = re.sub(r'(\*\*History\*\*\n(?:- [^\n]*\n?)*)', lambda m: m[1].rstrip('\n') + '\n' + line + '\n', desc, count=1)
-                else:   # before the metadata block, which stays last
-                    body, sep, meta = desc.partition('\n\n<metadata>\n')
-                    desc = body.rstrip('\n') + '\n\n**History**\n' + line + (sep + meta if sep else '')
-                st, _ = todoist('POST', f'tasks/{target}', {'content': d['new_title'], 'description': desc.rstrip('\n')})
-                st2, t2 = todoist('GET', f'tasks/{target}')
-                done(e, action, target, bool(t2) and t2['content'] == d['new_title'] and line in t2['description'], f'HTTP {st}/{st2}')
-            elif action == 'delete_task':
+            if action == 'delete_task':
                 st, _ = todoist('DELETE', f'tasks/{target}')
                 st2, _ = todoist('GET', f'tasks/{target}')
                 done(e, action, target, st2 == 404, f'HTTP {st}, readback {st2}')

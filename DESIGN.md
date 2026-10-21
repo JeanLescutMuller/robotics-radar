@@ -142,10 +142,11 @@ Not built (user, 2026-10-20): `~/dev/alerting` will carry them once its channels
 | which events go on the calendar | every event the user can still attend or register for, registered or not; one closed to the user is not added, and the radar's own Couple event for it is removed (title prefix and marker `ROBOTICS_RADAR_AUTO`, never a user's own event) |
 | (2026-10-21) which calendar | the shared, public calendar; the radar's 41 Couple entries are moved there (removed from Couple, marker-checked) |
 | (2026-10-21) which events are registered | only those the user accepts in the calendar |
+| (2026-10-21) event tasks | only for an accepted event the radar could not register by itself; made by stage B, never by A (A only deletes those of events that are over) |
+| (2026-10-21) phone number | only on forms that require it; `form.phone` in the private config |
+| (2026-10-21) every event shown twice in the user's calendar | the shared calendar (theirs, ticked) + its invitation in "personnel": the shared calendar is unticked in the user's own list (`calendarList.selected: false`); friends' subscriptions are not affected |
 
 ## Open points
 
-- Event tasks: still one per event ≥60 (stage A). With registration on "accept", they may only be needed for accepted events the radar cannot finish [asked 2026-10-21].
-- A phone number for forms that require one (`form.phone`): none yet; the user gives it in their "ok" reply until then [asked 2026-10-21].
 
 - Unconfirmed time: a whole-day Couple event "time not confirmed", updated when the time is published [proposed 2026-10-21].

@@ -1,5 +1,5 @@
-"""Helpers shared by reconcile.py (phase 1) and run.py (the run): config, external reads, matching, Claude calls."""
-import hashlib, html, json, re, subprocess, unicodedata, urllib.request
+"""Helpers shared by stage A (src/stage_a/) and stage B (src/stage_b/): config, external reads and writes, matching, Claude calls."""
+import hashlib, html, json, re, subprocess, unicodedata, urllib.error, urllib.request
 from datetime import date, datetime
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -41,6 +41,20 @@ def todoist_get(path):
         d_page = json.load(urllib.request.urlopen(urllib.request.Request(url, headers={'Authorization': f'Bearer {token}'}), timeout=30))
         l_res += d_page['results']; cursor = d_page.get('next_cursor')
         if not cursor: return l_res
+
+
+
+def todoist(method, path, body=None):
+    """One Todoist API v1 write (or read): (HTTP status, parsed answer or None). Token as in todoist_get."""
+    token = re.search(r'TODOIST_API_TOKEN="?([^"\n]+)', (Path.home() / '.config/task-management/todoist_token.env').read_text())[1]
+    req = urllib.request.Request(f'https://api.todoist.com/api/v1/{path}', method=method, data=json.dumps(body).encode() if body is not None else None,
+                                 headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            raw = r.read()
+            return r.status, (json.loads(raw) if raw else None)
+    except urllib.error.HTTPError as e:
+        return e.code, None
 
 
 def http_get(url, timeout=25, as_json=False):

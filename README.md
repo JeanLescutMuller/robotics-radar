@@ -1,19 +1,18 @@
 # robotics-radar
 
-**Finds robotics and Physical AI events in Zürich/Switzerland for the next six months, puts the good ones in Todoist and the Couple calendar, and registers me for the free ones.**
+**A: keeps a shareable calendar of robotics and Physical AI events near Zürich up to date. B: registers me for the events I accept in it.**
 
-State (2026-10-20): design only, no code yet. ChatGPT's scheduled task still does the discovery until phase 3 of [DESIGN.md](DESIGN.md).
+State (2026-10-21): both stages run on the Mac; B fills forms but does not send them yet (trust ramp).
 
 ```mermaid
 flowchart LR
-    S["sources<br/>Luma · Voxel51 · ETH/UZH · DARE · Meetup…"] --> R["daily run on the Mac<br/>discover → merge → score"]
-    R --> T["Todoist<br/>Professional › Robotics"]
-    R --> C["Couple calendar<br/>score ≥80, confirmed"]
-    R --> G["registration<br/>free, score ≥75"]
-    G --> T
-    R -.-> N["notifications<br/>later, via alerting"]
-    classDef planned fill:#eeeeee,stroke:#999999,stroke-dasharray: 4 3
-    class N planned
+    S["sources<br/>Luma · Voxel51 · ETH/UZH · pages"] --> A["stage A, daily<br/>discover → merge → score"]
+    A --> C["shared calendar<br/>public, QR code"]
+    A --> T["Todoist<br/>Professional › Robotics"]
+    C -- "invitation" --> M["my calendar<br/>I accept or decline"]
+    M -- "accepted" --> B["stage B, hourly<br/>Luma form in the radar's Chrome"]
+    B --> T
+    F["friends, people I meet"] -- "subscribe" --> C
 ```
 
 | File | What |

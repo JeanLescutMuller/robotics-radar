@@ -4,25 +4,30 @@ What we build to meet `REQUIREMENTS.md`, and the phases of the migration from Ch
 
 | | |
 |---|---|
-| Command | `~/opt/robotics-radar/entrypoint.sh` (job `robotics-radar`), started by an hourly launchd tick; does one run a day |
-| Reads | the sources in `doc/SOURCES.md`; Google Calendar (all visible calendars); Todoist Professional › Robotics; Gmail (confirmation emails); `~/.config/robotics-radar/config.yaml` |
-| Writes | `~/opt/robotics-radar/state/radar.sqlite`, `~/opt/robotics-radar/logs/`; Couple calendar events; event tasks; registrations in the user's name |
-| Acts | yes: registers the user for free events (§5); Claude tokens for scoring and forms only (§3) |
-| Consumed by | the user: Todoist "My day", the Couple calendar |
+| Command | stage A: `~/opt/robotics-radar/events.sh` (job `robotics-radar.events`), hourly tick, one run a day; stage B: `~/opt/robotics-radar/register.sh` (job `robotics-radar.register`), every hour |
+| Reads | the sources in `doc/SOURCES.md`; Google Calendar (all visible calendars; the user's answers on the shared calendar); Todoist Professional › Robotics; Gmail (Luma emails); `~/.config/robotics-radar/config.yaml` |
+| Writes | `~/opt/robotics-radar/state/radar.sqlite` (A), `state/register.sqlite` (B); the shared calendar's entries; event tasks and their comments; registrations in the user's name |
+| Acts | yes: registers the user for the events they accept (§5); Claude tokens for scoring, summaries and form answers only (§3) |
+| Consumed by | the user: their own calendar (invitations), Todoist "My day"; anyone: the shared calendar (QR code: `src/stage_a/qr.py`) |
 
 ## 1. The run
 
+Two stages, apart (user, 2026-10-21); they meet only through the shared calendar:
+
 ```
-launchd tick (hourly, Mac) ─► entrypoint.sh (job-runner: once a day, skip if done)
-  │
-  ├─ 1 discover      Python: Luma, Voxel51, ETH/UZH talks, DARE, Meetup, Eventbrite…   (doc/SOURCES.md)
-  │                  claude -p: one broad web search a week, for new organisers
-  ├─ 2 merge         Python + SQLite: canonical URL, normalised title/date/organiser
-  ├─ 3 score         claude -p: only new or changed events
-  ├─ 4 reconcile     Python: Calendar (gws CLI), Todoist (API); dry-run, read back
-  ├─ 5 register      Python + headless Chrome (own profile); check the confirmation email
-  └─ 6 notify        NOT BUILT: waits for ~/dev/alerting (§9)
+STAGE A  src/stage_a/   events.sh, once a day                      STAGE B  src/stage_b/   register.sh, every hour
+  ├─ 1 discover   Luma, Voxel51, pages; weekly web search            ├─ read the shared calendar: the user's answer on each entry
+  ├─ 2 merge      SQLite state/radar.sqlite                          ├─ accepted, Luma, free:
+  ├─ 3 score      claude -p: score + neutral blurb (new/changed)     │     auto      → fill the form in the radar's Chrome, send
+  ├─ 4 write      the shared calendar (public) ──┐                   │     ask first → Claude drafts → comment → user's "ok" → send
+  │               event tasks (Todoist)          │                   ├─ accepted, not Luma / paid / closed → comment "register yourself"
+  └─ notify       NOT BUILT (§9)                 │                   └─ declined after registered → comment "cancel it"
+                                                 ▼                              ▲
+                     the user's own calendar: an invitation per entry ── accept ┘
+                     anyone: views / subscribes through the QR code
 ```
+
+The user's Google answers: "Yes" (accepted) stays when stage A changes an entry's text or place; a new time makes Google ask again (tested 2026-10-21). Stage B keeps what it did in `state/register.sqlite`, so a reset never undoes a registration. The public feed shows no guest (tested 2026-10-21: no `ATTENDEE`, no email in `basic.ics` or `full.ics`).
 
 ## 2. Where it runs: the Mac (user, 2026-10-20)
 
@@ -56,7 +61,9 @@ launchd tick (hourly, Mac) ─► entrypoint.sh (job-runner: once a day, skip if
 
 First fill (phase 1): from Todoist Professional › Robotics, the calendars and `data/historical-events.json`, so the existing 40+ event tasks are matched, never duplicated.
 
-## 5. Registration: three groups (user, 2026-10-20: free events only)
+## 5. Registration (stage B): what the user accepted, in three groups
+
+Trigger (user, 2026-10-21, replacing "every free event with score ≥75"): only the events the user **accepts** in their calendar. Then the groups decide how:
 
 | Group | When | What the radar does |
 |---|---|---|
@@ -81,7 +88,7 @@ The repo stays public. `~/.config/robotics-radar/config.yaml` (chmod 600) holds 
 | 1 | read all calendars and Professional › Robotics; check the historical leads; fill SQLite (`src/reconcile.py`) ✅ 2026-10-21 | none: a report; then the 4 tasks of past events deleted with the user's OK | every event task and Couple event matched to one event, the doubts listed | read one table |
 | 2 | steps 1–4 in dry-run; the job installed ✅ 2026-10-21. Shortened (user, 2026-10-21): ChatGPT runs in dry-run instead and posts its plan as a Todoist comment; each run compares | none | the radar finds at least what ChatGPT finds, no duplicate in its dry-run writes | look at one comparison |
 | 3 | Calendar and Todoist writes on ✅ 2026-10-21 (first run: 5 tasks, 25 Couple entries, all read back; a second run planned nothing) | Calendar, Todoist | every write read back, no duplicate; after a week of daily comparisons, **the user turns off the ChatGPT schedule** | 1 min |
-| 4 | registration, auto group, screenshots only, then on; then ask first | registrations | 10 confirmed registrations, none wrong | log in once to each site; look at screenshots |
+| 4 | registration, auto group, screenshots only, then on; then ask first. 2026-10-21: split into stage A (the shared calendar, public, instead of Couple) and stage B (registers what the user accepts); Luma login by email code; forms filled in the radar's Chrome (tested on 3 forms, nothing sent) | the shared calendar; registrations | 10 confirmed registrations, none wrong | accept events; look at screenshots; say "ok" to drafts |
 | 5 | notifications through alerting | — | waits for alerting (§9) | — |
 
 ## 7b. Phase 2 as built (2026-10-21)
@@ -133,7 +140,12 @@ Not built (user, 2026-10-20): `~/dev/alerting` will carry them once its channels
 | company/role line on forms | company "Meta", role "Lead Data Scientist" (`form:` in the private config) |
 | event tasks of events now over | deleted by the radar (each run, step 4) |
 | which events go on the calendar | every event the user can still attend or register for, registered or not; one closed to the user is not added, and the radar's own Couple event for it is removed (title prefix and marker `ROBOTICS_RADAR_AUTO`, never a user's own event) |
+| (2026-10-21) which calendar | the shared, public calendar; the radar's 41 Couple entries are moved there (removed from Couple, marker-checked) |
+| (2026-10-21) which events are registered | only those the user accepts in the calendar |
 
 ## Open points
+
+- Event tasks: still one per event ≥60 (stage A). With registration on "accept", they may only be needed for accepted events the radar cannot finish [asked 2026-10-21].
+- A phone number for forms that require one (`form.phone`): none yet; the user gives it in their "ok" reply until then [asked 2026-10-21].
 
 - Unconfirmed time: a whole-day Couple event "time not confirmed", updated when the time is published [proposed 2026-10-21].

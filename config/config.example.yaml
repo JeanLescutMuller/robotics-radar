@@ -5,13 +5,12 @@ lookahead_days: 183
 announcement_lookback_days: 30
 minimum_task_score: 60
 minimum_notification_score: 75   # notifications not built yet (DESIGN.md §9)
-minimum_calendar_score: 80
 minimum_registration_score: 75   # free events only (DESIGN.md §5)
-calendar:
-  target_id: <Couple calendar id>@group.calendar.google.com
-  title_prefix: "🤖 [Robotics Radar] "
-  color_id: "1"
+calendar:                        # the shared, public calendar stage A keeps up to date
+  target_id: <shared calendar id>@group.calendar.google.com
+  title_prefix: "🤖 "
   marker: ROBOTICS_RADAR_AUTO
+  invite_email: <your Google account email>   # you, a guest of each entry: stage B registers you for the ones you accept
 todoist:
   project_id: <Professional project id>
   section_id: <Robotics section id>

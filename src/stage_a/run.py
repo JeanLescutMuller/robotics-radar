@@ -1,15 +1,16 @@
-"""One run of the radar (DESIGN.md §1): discover → merge → score → plan the Calendar/Todoist writes → write (phase 3).
+"""Stage A, one run (DESIGN.md §1): discover → merge → score → plan the writes (shared calendar, Todoist) → write.
 
 Writes only with --write AND dry_run: false in ~/.config/robotics-radar/config.yaml (write.py); otherwise the planned writes
 go to state/radar.sqlite (table plans) and the report only. Each run also compares with ChatGPT's dry-run log (Todoist comments).
 Reads:  collect.py's sources, Todoist Professional › Robotics, every calendar, Luma emails (gws), the user's robotics facts
         (~/opt/my-setup/context/snapshot/facts/robotics.md, for scoring).
 Writes: state/radar.sqlite, state/runs/<date>.md, state/run_report.md (the latest). All git-ignored.
-Run:    python3 src/run.py [--no-search] [--write] > state/run.log 2>&1
+Run:    python3 src/stage_a/run.py [--no-search] [--write] > state/run.log 2>&1
 """
 import json, re, sqlite3, sys, time
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))   # src/: common.py, shared with stage B
 import collect, write
 from common import (STATE, TZ, canon_url, claude_json, d_cfg, d_src, gws, log, parse_event_dates, same_event, similarity,
                     todoist_get, urls_in)
@@ -113,7 +114,8 @@ for c in l_cand:
     except Exception as e: log(f'merge {c.get("title")}: {e}'); l_errors.append(f'merge: {e}')
 
 # ---------- 3. link: event tasks, calendar entries, Luma emails ----------
-if 'other_task_ids' not in COLS: db.execute('ALTER TABLE events ADD COLUMN other_task_ids TEXT'); COLS.append('other_task_ids')
+for col in ('other_task_ids', 'blurb'):   # blurb: Claude's neutral 2-3 sentences for the shared calendar (stage A, 2026-10-21)
+    if col not in COLS: db.execute(f'ALTER TABLE events ADD COLUMN {col} TEXT'); COLS.append(col)
 db.execute('UPDATE events SET task_id=NULL, calendar_ids=NULL, other_task_ids=NULL')
 for t in l_all_tasks:
     if t in l_tasks: continue
@@ -137,12 +139,15 @@ for t in l_tasks:
 
 t_min = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat(); t_max = (datetime.now(timezone.utc) + timedelta(days=200)).isoformat()
 s_ical = set(); n_cal = 0
+SHARED = d_cfg['calendar']['target_id']   # the public calendar (user, 2026-10-21)
+d_entry = {}                              # event_id → its entry in the shared calendar, to compare with what it should say
 for d_cal in gws('calendar', 'calendarList', 'list')['items']:
     token = None
     while True:
         d_p = {'calendarId': d_cal['id'], 'timeMin': t_min, 'timeMax': t_max, 'singleEvents': True, 'maxResults': 2500} | ({'pageToken': token} if token else {})
         d_page = gws('calendar', 'events', 'list', '--params', json.dumps(d_p))
         for ce in d_page.get('items', []):
+            if d_cal['id'] != SHARED and (ce.get('organizer') or {}).get('email') == SHARED: continue   # the user's invitation: the shared entry itself
             if ce.get('iCalUID') in s_ical: continue
             s_ical.add(ce.get('iCalUID'))
             s = ce.get('start', {})
@@ -152,6 +157,7 @@ for d_cal in gws('calendar', 'calendarList', 'list')['items']:
             radar = d_cfg['calendar']['marker'] in (ce.get('description') or '') or ce.get('summary', '').startswith(d_cfg['calendar']['title_prefix'].strip())
             prev = db.execute('SELECT calendar_ids FROM events WHERE event_id=?', (eid,)).fetchone()[0]
             ref = f"{d_cal['id']}|{ce['id']}|{'radar' if radar else 'user'}"
+            if d_cal['id'] == SHARED: d_entry[eid] = ce
             db.execute('UPDATE events SET calendar_ids=? WHERE event_id=?', (f'{prev} {ref}' if prev else ref, eid)); n_cal += 1
         token = d_page.get('nextPageToken')
         if not token: break
@@ -174,11 +180,11 @@ log(f'linked: {len(l_tasks)} event tasks, {n_cal} calendar entries, {len(l_mail)
 
 # ---------- 4. score new or changed events (Claude, in batches) ----------
 def fp(e): return json.dumps([e[k] for k in FINGERPRINT + ('user_state',)])   # rescored when the user's own state changes too
-l_to_score = [e for e in all_events() if e['start'] and day(e['start']) >= TODAY and e['scored_fp'] != fp(e)
+l_to_score = [e for e in all_events() if e['start'] and day(e['start']) >= TODAY and (e['scored_fp'] != fp(e) or (e['blurb'] is None and e['rank'] > RANK['todoist']))
               and (e['rank'] > RANK['todoist'] or e['score'] is None)]   # a task's event: only when the task gave no score
 profile_path = Path.home() / 'opt/my-setup/context/snapshot/facts/robotics.md'
 profile = profile_path.read_text()[:6000] if profile_path.exists() else ''
-rubric = (Path(__file__).resolve().parent.parent / 'REQUIREMENTS.md').read_text().split('## Scoring')[1].split('##')[0].strip()
+rubric = (Path(__file__).resolve().parents[2] / 'REQUIREMENTS.md').read_text().split('## Scoring')[1].split('##')[0].strip()
 for i in range(0, len(l_to_score), 20):
     l_batch = l_to_score[i:i + 20]
     l_in = [{'id': e['event_id'], 'title': e['title'], 'start': e['start'], 'venue': e['venue'] or e['city'], 'online': bool(e['online']),
@@ -194,12 +200,15 @@ EVENTS:
 {json.dumps(l_in, ensure_ascii=False)}
 
 "user_already" is the person's own state (registered, pending, waitlist): never penalise a full event they are already in.
-Answer ONLY a JSON array: [{{"id": int, "score": int, "reason": "max 20 words"}}] with one object per event."""
+"blurb": for a PUBLIC calendar read by anyone: 2-3 plain sentences, from the event's own facts only: what it is, who speaks or
+organises, for whom, the language if known. Never a word about THE PERSON, never an opinion. Empty string if the summary says nothing.
+Answer ONLY a JSON array: [{{"id": int, "score": int, "reason": "max 20 words", "blurb": "..."}}] with one object per event."""
     try:
         l_out, cost = claude_json(prompt, d_src['models']['score']); l_cost.append(cost)
         d_e = {e['event_id']: e for e in l_batch}
         for o in l_out:
-            if o.get('id') in d_e: db.execute('UPDATE events SET score=?, score_reason=?, scored_fp=? WHERE event_id=?', (int(o['score']), o.get('reason', ''), fp(d_e[o['id']]), o['id']))
+            if o.get('id') in d_e: db.execute('UPDATE events SET score=?, score_reason=?, scored_fp=?, blurb=? WHERE event_id=?',
+                                              (int(o['score']), o.get('reason', ''), fp(d_e[o['id']]), o.get('blurb') or '', o['id']))
     except Exception as e: log(f'score: {e}'); l_errors.append(f'score: {e}')
 log(f'scored: {len(l_to_score)} events')
 # remember the organisers of good Luma events: their calendars are read every run
@@ -229,6 +238,22 @@ def safety_date(e):
 def closed_to_user(e): return e['reg_state'] in ('full', 'closed') and e['user_state'] not in ('registered', 'pending', 'waitlist')
 
 
+def found_on(eid):
+    # where the radar found the event: listing pages and searches by their URL; the Luma and Voxel51 feeds by name (never a Todoist task)
+    l = [key.split('#')[0] if src in ('page', 'search') else {'luma': 'Luma', 'voxel51': 'Voxel51 events'}.get(src)
+         for src, key in db.execute('SELECT source, key FROM keys WHERE event_id=?', (eid,))]
+    return sorted({x for x in l if x})
+
+
+def public_summary(e):
+    # Claude's blurb, else the organiser's text; an event known only from a task has the task's text: private, never in the shared calendar
+    s = e['blurb'] or re.sub(r'\s+', ' ', e['summary'] or '').strip()[:800]
+    return '' if (e['rank'] or 0) <= RANK['todoist'] or re.search(r'<metadata>|Subsection:|\*\*Next step|Robotics Radar event', s) else s
+
+
+def body_of(e): return write.calendar_body(e, public_summary(e), found_on(e['event_id']))
+
+
 l_plan = []
 def plan(e, action, target, **details): l_plan.append((e, action, target, details))
 for e in all_events():
@@ -251,19 +276,24 @@ for e in all_events():
         title = d_task_by_id[l_tid[0]]['content'].lower()
         if ACTION_WORDS[act] not in title and act in ('confirm attendance', 'check application status', 'check waitlist status', 'join waitlist'):
             plan(e, 'update_task', l_tid[0], new_title=f"{e['title']}: {act}", why=f"Luma says {e['user_state'] or e['reg_state']}")
-    if not l_cal and not closed_to_user(e) and ((e['score'] or 0) >= d_cfg['minimum_task_score'] or e['user_state'] in ('registered', 'pending', 'waitlist')):
-        plan(e, 'add_calendar', 'Couple', title=d_cfg['calendar']['title_prefix'] + e['title'], when=f"{e['start']} → {e['end'] or ''}",
-             whole_day=len(e['start']) == 10)
-    if closed_to_user(e):
-        for cal_id, ev_id, who in l_cal:
-            if who == 'radar': plan(e, 'remove_calendar', f'{cal_id}|{ev_id}', why=f"{e['reg_state']}, not registered")
+    # the shared calendar: every event still open to the user (or that they are in); the user is invited unless they have their own entry
+    shown = not closed_to_user(e) and ((e['score'] or 0) >= d_cfg['minimum_task_score'] or e['user_state'] in ('registered', 'pending', 'waitlist'))
+    if shown and e['event_id'] not in d_entry:
+        plan(e, 'add_calendar', 'shared', title=d_cfg['calendar']['title_prefix'] + e['title'], when=f"{e['start']} → {e['end'] or ''}",
+             whole_day=len(e['start']) == 10, invite=not any(who == 'user' for _, _, who in l_cal))
+    elif not closed_to_user(e) and e['event_id'] in d_entry and (l_diff := write.entry_diff(d_entry[e['event_id']], body_of(e))):
+        plan(e, 'update_calendar', f"{SHARED}|{d_entry[e['event_id']]['id']}", fields=l_diff)
+    for cal_id, ev_id, who in l_cal:
+        if who != 'radar': continue
+        if cal_id != SHARED: plan(e, 'remove_calendar', f'{cal_id}|{ev_id}', why='moved to the shared calendar')
+        elif closed_to_user(e): plan(e, 'remove_calendar', f'{cal_id}|{ev_id}', why=f"{e['reg_state']}, not registered")
 for e, action, target, details in l_plan:
     db.execute('INSERT INTO plans VALUES (?,?,?,?,?,?,?)', (RUN_TS, RUN_DT, RUN_TS, e['event_id'], action, target, json.dumps(details, ensure_ascii=False)))
 WRITING = '--write' in sys.argv and d_cfg.get('dry_run') is False
 n_written = 0
 if WRITING:
     def sources_of(eid): return ', '.join(sorted({r[0] for r in db.execute('SELECT source FROM keys WHERE event_id=?', (eid,))}))
-    n_written, l_werr = write.execute(db, l_plan, d_task_by_id, RUN_TS, RUN_DT, sources_of)
+    n_written, l_werr = write.execute(db, l_plan, d_task_by_id, RUN_TS, RUN_DT, sources_of, body_of)
     l_errors += l_werr
 
 # ---------- ChatGPT's dry-run log: its latest comment, matched against the radar's events ----------
@@ -301,7 +331,8 @@ L = [f"# Radar run {RUN_DT} ({f'WRITES: {n_written} done, read back' if WRITING 
 L += [row(f'planned: {a}', n) for a, n in sorted(d_count.items())]
 for action, head in (('create_task', '| Event date | Score | New task | Safety date | Registration |'), ('update_task', '| Event date | Task | New title | Why |'),
                      ('delete_task', '| Event | Task | Why |'), ('merge_tasks', '| Event | Tasks | Why |'),
-                     ('add_calendar', '| Event date | Score | Calendar title | Whole day |'), ('remove_calendar', '| Event | Entry | Why |')):
+                     ('add_calendar', '| Event date | Score | Calendar title | Whole day | You invited |'), ('update_calendar', '| Event date | Calendar title | Fields |'),
+                     ('remove_calendar', '| Event | Entry | Why |')):
     l_rows = [(e, t, d) for e, a, t, d in l_plan if a == action]
     if not l_rows: continue
     L += ['', f'## Planned: {action} ({len(l_rows)})', '', head, '|' + '---|' * head.count(' | ') + '---|']
@@ -310,7 +341,8 @@ for action, head in (('create_task', '| Event date | Score | New task | Safety d
                   'update_task': lambda: row(e['start'][:10], d_task_by_id[t]['content'], d['new_title'], d['why']),
                   'delete_task': lambda: row(e['title'], d_task_by_id[t]['content'], d['why']),
                   'merge_tasks': lambda: row(e['title'], t, d['why']),
-                  'add_calendar': lambda: row(e['start'][:16], e['score'], d['title'], d['whole_day']),
+                  'add_calendar': lambda: row(e['start'][:16], e['score'], d['title'], d['whole_day'], d['invite']),
+                  'update_calendar': lambda: row(e['start'][:16], e['title'], ', '.join(d['fields'])),
                   'remove_calendar': lambda: row(e['title'], t, d['why'])}[action]())
 # side by side with ChatGPT's dry-run (its latest log comment)
 d_ev = {e['event_id']: e for e in all_events()}

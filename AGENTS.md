@@ -1,15 +1,16 @@
 # robotics-radar: rules for agents
 
-Finds robotics and Physical AI events in Zürich/Switzerland for the next six months, puts them in Todoist and the Couple calendar, and registers the user for free ones. **State (2026-10-20): design only, no code yet**; ChatGPT's scheduled task still does discovery until phase 3 of `DESIGN.md`.
+Two stages (user, 2026-10-21): **stage A** (`src/stage_a/`, job `robotics-radar.events`, daily) finds robotics and Physical AI events near Zürich for the next six months and keeps **the shared calendar** up to date (and the event tasks in Todoist); **stage B** (`src/stage_b/`, job `robotics-radar.register`, hourly) registers the user for the events they **accepted** in it. They meet only through the shared calendar (and B reads A's `state/radar.sqlite` to find an event's task). State (2026-10-21): both run; B's last click is off (`registration.submit: false`).
 
 Read before working: `REQUIREMENTS.md` (what the user gets), `DESIGN.md` (what we build, the phases), `doc/SOURCES.md` (where events come from), `data/historical-events.json` (ChatGPT's leads, unverified).
 
 ## Rules
 
 - **Public repo** (user, 2026-10-20: stays public). Never commit a calendar ID, a Todoist ID, an email address, form answers, tokens, cookies, the Chrome profile, Calendar contents or Todoist exports. Real values live in `~/.config/robotics-radar/config.yaml` (chmod 600); `config/config.example.yaml` holds placeholders only.
+- **The shared calendar is public**: an entry holds only the event's own facts (`stage_a/write.py` `calendar_body`): never a score, a Todoist link, the user's state, or text from a Todoist task.
 - **Dry-run by default** until a phase's writes are tested; every Calendar or Todoist write is read back.
 - **Never duplicate** an event in any visible calendar, or an event task in Todoist (`REQUIREMENTS.md` Calendar, Todoist).
-- **Registration**: only free events, score ≥75, registration group "auto", or "ask first" after the user's ok (`DESIGN.md` §5). Never pay, never create an account, never type a password, never bypass a CAPTCHA: hand it to the user as a Todoist task.
+- **Registration**: only events the user accepted in the calendar (user, 2026-10-21), free, registration group "auto", or "ask first" after the user's "ok" (`DESIGN.md` §5). Never pay, never create an account, never type a password, never bypass a CAPTCHA: hand it to the user as a Todoist task.
 - **Notifications are not built** (user, 2026-10-20): they wait for `~/dev/alerting` (Todoist task "Send the radar's notifications through alerting"). Do not add another channel.
 - Event tasks are the user's: no `agent`/`claude`/`chatgpt` labels on them, never complete them; delete the task of an event that is over (user, 2026-10-21).
 - Chrome: headless, own data folder `~/opt/robotics-radar/chrome/` (skill `chrome-headless`).
@@ -26,14 +27,18 @@ Read before working: `REQUIREMENTS.md` (what the user gets), `DESIGN.md` (what w
 | **safety date** | an event task's due date: the day to act (register, apply), never the event's date | deadline (reserved for the organiser's published cutoff) |
 | **registration** | signing the user up for an event (register, request admission, join a waitlist) | booking, enrolment |
 | **registration group** | auto / ask first / never: what the radar may do for an event (`DESIGN.md` §5) | tier, level |
+| **stage A** / **stage B** | A: find events, keep the shared calendar up to date. B: register the user for the events they accepted | phase (phases are the migration steps, `DESIGN.md` §7) |
+| **shared calendar** | the public Google calendar "Robotics & Physical AI events near Zürich" that stage A fills, shared by a QR code | public calendar, feed |
+| **accept** | the user's "Yes" on the invitation of a shared-calendar entry in their own calendar: stage B's only trigger | RSVP, opt in |
 
 ## Commands
 
 ```bash
 cd ~/dev/robotics-radar
-python3 src/run.py --no-search > state/run.log 2>&1   # one dry-run by hand (state/ here); the report: state/run_report.md
-python3 src/reconcile.py > state/phase1.log 2>&1      # phase 1's read-only check
-bash install.sh                                       # deploy HEAD to ~/opt/robotics-radar, load the daily job (dry-run)
+.venv/bin/python src/stage_a/run.py --no-search > state/run.log 2>&1   # stage A, dry-run by hand (state/ here); report state/run_report.md
+.venv/bin/python src/stage_b/run.py > state/register.log 2>&1          # stage B, dry-run; report state/register_report.md
+.venv/bin/python src/stage_a/qr.py                                     # the shared calendar's QR code (a PNG in the Drive)
+bash install.sh                                                        # deploy HEAD to ~/opt/robotics-radar, load both jobs
 ```
 
 The job's own state and reports: `~/opt/robotics-radar/state/` (never edited by hand). Claude cost per run: the report's first table.

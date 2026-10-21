@@ -16,6 +16,7 @@ todoist:
   project_id: <Professional project id>
   section_id: <Robotics section id>
   description_prefix: "Subsection: Events"
+  chatgpt_log_task_id: <task holding ChatGPT dry-run comments>
 form:                            # answers the radar may put on a registration form
   email: <you>+events@gmail.com
   first_name: <first name>

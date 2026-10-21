@@ -1,15 +1,16 @@
-"""One run of the radar (DESIGN.md §1): discover → merge → score → plan the Calendar/Todoist writes.
+"""One run of the radar (DESIGN.md §1): discover → merge → score → plan the Calendar/Todoist writes → write (phase 3).
 
-Phase 2: DRY-RUN ONLY. The planned writes go to state/radar.sqlite (table plans) and the report; nothing external is written.
+Writes only with --write AND dry_run: false in ~/.config/robotics-radar/config.yaml (write.py); otherwise the planned writes
+go to state/radar.sqlite (table plans) and the report only. Each run also compares with ChatGPT's dry-run log (Todoist comments).
 Reads:  collect.py's sources, Todoist Professional › Robotics, every calendar, Luma emails (gws), the user's robotics facts
         (~/opt/my-setup/context/snapshot/facts/robotics.md, for scoring).
 Writes: state/radar.sqlite, state/runs/<date>.md, state/run_report.md (the latest). All git-ignored.
-Run:    python3 src/run.py [--no-search] > state/run.log 2>&1
+Run:    python3 src/run.py [--no-search] [--write] > state/run.log 2>&1
 """
 import json, re, sqlite3, sys, time
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-import collect
+import collect, write
 from common import (STATE, TZ, canon_url, claude_json, d_cfg, d_src, gws, log, parse_event_dates, same_event, similarity,
                     todoist_get, urls_in)
 
@@ -252,6 +253,34 @@ for e in all_events():
             if who == 'radar': plan(e, 'remove_calendar', f'{cal_id}|{ev_id}', why=f"{e['reg_state']}, not registered")
 for e, action, target, details in l_plan:
     db.execute('INSERT INTO plans VALUES (?,?,?,?,?,?,?)', (RUN_TS, RUN_DT, RUN_TS, e['event_id'], action, target, json.dumps(details, ensure_ascii=False)))
+WRITING = '--write' in sys.argv and d_cfg.get('dry_run') is False
+n_written = 0
+if WRITING:
+    def sources_of(eid): return ', '.join(sorted({r[0] for r in db.execute('SELECT source FROM keys WHERE event_id=?', (eid,))}))
+    n_written, l_werr = write.execute(db, l_plan, d_task_by_id, RUN_TS, RUN_DT, sources_of)
+    l_errors += l_werr
+
+# ---------- ChatGPT's dry-run log: its latest comment, matched against the radar's events ----------
+l_gpt_ev, gpt_date = [], None
+log_task = d_cfg['todoist'].get('chatgpt_log_task_id')
+if log_task:
+    try:
+        l_com = [c for c in todoist_get(f'comments?task_id={log_task}&limit=200') if c['content'].startswith('CHATGPT-DRY-RUN')]
+        if l_com:
+            c = max(l_com, key=lambda c: c['posted_at'])
+            m = re.search(r'```(?:json)?\s*(.*?)```', c['content'], re.S)
+            d_gpt = json.loads(m[1] if m else c['content'][c['content'].index('{'):])
+            gpt_date, l_gpt_ev = d_gpt.get('run_date'), d_gpt.get('events', [])
+            db.execute('CREATE TABLE IF NOT EXISTS chatgpt (ts INT, dt TEXT, run_date TEXT, title TEXT, start TEXT, url TEXT, score INT, would_do TEXT, event_id INT, PRIMARY KEY (run_date, title, start))')
+    except Exception as e: log(f'chatgpt log: {e}'); l_errors.append(f'chatgpt log: {e}')
+d_gpt_match = {}
+for g in l_gpt_ev:
+    gv = {'title': g.get('title') or '', 'start': day(g.get('start')) if g.get('start') else None,
+          'urls': {canon_url(u) for u in (g.get('official_url'), g.get('registration_url')) if u}}
+    eid = next((e['event_id'] for e in all_events() if same_event(gv, match_view(e), s_listing)), None)
+    d_gpt_match[id(g)] = eid
+    db.execute('INSERT OR REPLACE INTO chatgpt VALUES (?,?,?,?,?,?,?,?,?)', (RUN_TS, RUN_DT, gpt_date, gv['title'], g.get('start'), g.get('official_url'),
+                                                                           g.get('score'), json.dumps(g.get('would_do')), eid))
 cost = round(sum(l_cost), 4)
 db.execute('INSERT INTO runs VALUES (?,?,?,?,?,?,?,?)', (RUN_TS, RUN_DT, int(did_search), len(l_cand), n_new, len(s_changed), cost, json.dumps(l_errors)))
 
@@ -260,7 +289,7 @@ def row(*cells): return '| ' + ' | '.join(str(c if c is not None else '').replac
 d_count = {}
 for _, a, _, _ in l_plan: d_count[a] = d_count.get(a, 0) + 1
 phase2_start = int(db.execute("SELECT v FROM meta WHERE k='phase2_start'").fetchone()[0])
-L = [f'# Radar run {RUN_DT} (DRY-RUN: nothing written)', '', '| What | Count |', '|---|---|',
+L = [f"# Radar run {RUN_DT} ({f'WRITES: {n_written} done, read back' if WRITING else 'DRY-RUN: nothing written'})", '', '| What | Count |', '|---|---|',
      row('candidates read', len(l_cand)), row('new events', n_new), row('changed events', len(s_changed)), row('events scored', len(l_to_score)),
      row('broad web search', 'yes' if did_search else 'no'), row('Claude cost (USD, this run)', cost), row('errors', len(l_errors))]
 L += [row(f'planned: {a}', n) for a, n in sorted(d_count.items())]
@@ -277,16 +306,21 @@ for action, head in (('create_task', '| Event date | Score | New task | Safety d
                   'merge_tasks': lambda: row(e['title'], t, d['why']),
                   'add_calendar': lambda: row(e['start'][:16], e['score'], d['title'], d['whole_day']),
                   'remove_calendar': lambda: row(e['title'], t, d['why'])}[action]())
-# side by side with ChatGPT: its event tasks created since phase 2 started, and whether the radar's own sources found that event
-l_gpt = [t for t in l_tasks if datetime.fromisoformat(t['added_at'].replace('Z', '+00:00')).timestamp() >= phase2_start]
-L += ['', f'## ChatGPT vs radar (since {datetime.fromtimestamp(phase2_start, TZ).date()})', '', '| ChatGPT task | Found by the radar\'s sources? |', '|---|---|']
-for t in l_gpt:
-    eid = db.execute('SELECT event_id FROM events WHERE task_id LIKE ?', (f'%{t["id"]}%',)).fetchone()
-    srcs = {r[0] for r in db.execute('SELECT source FROM keys WHERE event_id=?', (eid[0],))} - {'todoist'} if eid else set()
-    L.append(row(t['content'], ', '.join(sorted(srcs)) or '**no**'))
-L += ['', f"Radar only: {d_count.get('create_task', 0)} events the radar would add that have no task (table create_task above)."]
+# side by side with ChatGPT's dry-run (its latest log comment)
+d_ev = {e['event_id']: e for e in all_events()}
+s_gpt_eids = {v for v in d_gpt_match.values() if v}
+L += ['', f"## ChatGPT vs radar (ChatGPT's run of {gpt_date or 'none yet'})", '', '| Event date | ChatGPT event | ChatGPT score | Radar score | Radar tracks it? |', '|---|---|---|---|---|']
+for g in sorted(l_gpt_ev, key=lambda g: g.get('start') or ''):
+    e = d_ev.get(d_gpt_match[id(g)])
+    tracked = e and (e['task_id'] or (e['score'] or 0) >= d_cfg['minimum_task_score'])
+    L.append(row((g.get('start') or '')[:10], g.get('title'), g.get('score'), e['score'] if e else '—', 'yes' if tracked else '**no: ChatGPT only**' if not e else 'found, scored lower'))
+l_radar_only = [e for e in d_ev.values() if e['start'] and day(e['start']) >= TODAY and (e['score'] or 0) >= d_cfg['minimum_task_score']
+                and e['event_id'] not in s_gpt_eids]
+if l_gpt_ev:
+    L += ['', f'Radar only ({len(l_radar_only)}): ' + '; '.join(f"{e['start'][:10]} {e['title']} ({e['score']})" for e in sorted(l_radar_only, key=lambda e: e['start']))]
 if l_errors: L += ['', '## Errors', ''] + [f'- {x}' for x in l_errors]
 text = '\n'.join(L) + '\n'
 (STATE / 'runs' / f"{datetime.fromtimestamp(RUN_TS, TZ):%Y-%m-%d_%H%M}.md").write_text(text)
 (STATE / 'run_report.md').write_text(text)
-log(f'plan: {d_count}; cost ${cost}; report {STATE / "run_report.md"}')
+log(f'plan: {d_count}; written: {n_written if WRITING else "dry-run"}; cost ${cost}; report {STATE / "run_report.md"}')
+sys.exit(1 if WRITING and l_errors else 0)   # a failed or refused write turns the job red

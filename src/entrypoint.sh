@@ -8,7 +8,7 @@
 #   - at most 3 failures per UTC day, an hour apart (the tick spaces them)
 #   - not when offline
 #   - timeout 60 min, shorter than the tick, but a claim anyway (a run by hand may overlap)
-#   - DRY-RUN in phase 2: run.py writes nothing external, only ~/opt/robotics-radar/state/
+#   - writes (Todoist, Couple calendar) only when ~/.config/robotics-radar/config.yaml says dry_run: false (phase 3)
 #   - PATH: launchd's has neither claude (~/.local/bin) nor gws (Homebrew)
 #   - summary: the "plan:" line
 #   - alert: red after 48 h without a success (entrypoint.conf; the Mac may sleep)
@@ -20,5 +20,5 @@ jr_skip_if SUCCESS day "ran today already (days start 00:00 UTC)"
 jr_skip_if FAILURE day "3 failures today" 3
 jr_online || jr_skip "offline"
 
-jr_execute 60 env PYTHONUTF8=1 /opt/anaconda3/bin/python3 src/run.py
+jr_execute 60 env PYTHONUTF8=1 /opt/anaconda3/bin/python3 src/run.py --write   # writes only when the config says dry_run: false
 [ "$JR_RC" = 0 ] && jr_summary_grep 'plan:'

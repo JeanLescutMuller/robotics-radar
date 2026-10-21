@@ -73,7 +73,7 @@ Trigger (user, 2026-10-21, replacing "every free event with score ≥75"): only 
 
 - Form email: the `form.email` value in `~/.config/robotics-radar/config.yaml` (the user's `+events` address, so a Gmail filter can label the replies; user, 2026-10-20). The site's login (Luma's account) stays whatever the user logged in with.
 - Logged in once: the user logs in to Luma, Eventbrite and Meetup in `~/opt/robotics-radar/chrome/` in a visible window (skill `chrome-headless`), then headless forever; a login page later = an event task for the user, never a password typed.
-- Trust ramp: the first two weeks every auto registration stops before the final click and saves a screenshot; the user looks at them; then submission is switched on (one line in `entrypoint.sh`, like auto-job-apply).
+- Trust ramp: planned as two weeks of filled forms and screenshots before the last click is made (`registration.submit` in the private config). Skipped (user, 2026-10-21: "turn it on") after 3 Luma forms were filled correctly; the first real registrations are checked by a Todoist task (due 2026-10-23).
 - Proof: "registered" only after the site's confirmation email (or page) is seen; otherwise the event task says what failed.
 
 ## 6. Personal values and secrets: outside the repo (user, 2026-10-20)
@@ -147,6 +147,5 @@ Not built (user, 2026-10-20): `~/dev/alerting` will carry them once its channels
 | (2026-10-21) every event shown twice in the user's calendar | the shared calendar (theirs, ticked) + its invitation in "personnel": the shared calendar is unticked in the user's own list (`calendarList.selected: false`); friends' subscriptions are not affected |
 
 ## Open points
-
 
 - Unconfirmed time: a whole-day Couple event "time not confirmed", updated when the time is published [proposed 2026-10-21].

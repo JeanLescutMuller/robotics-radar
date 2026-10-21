@@ -1,6 +1,6 @@
 # robotics-radar: rules for agents
 
-Two stages (user, 2026-10-21): **stage A** (`src/stage_a/`, job `robotics-radar.events`, daily) finds robotics and Physical AI events near Zürich for the next six months and keeps **the shared calendar** up to date (and the event tasks in Todoist); **stage B** (`src/stage_b/`, job `robotics-radar.register`, hourly) registers the user for the events they **accepted** in it. They meet only through the shared calendar (and B reads A's `state/radar.sqlite` to find an event's task). State (2026-10-21): both run; B's last click is off (`registration.submit: false`).
+Two stages (user, 2026-10-21): **stage A** (`src/stage_a/`, job `robotics-radar.events`, daily) finds robotics and Physical AI events near Zürich for the next six months and keeps **the shared calendar** up to date (and the event tasks in Todoist); **stage B** (`src/stage_b/`, job `robotics-radar.register`, hourly) registers the user for the events they **accepted** in it. They meet only through the shared calendar (and B reads A's `state/radar.sqlite` to find an event's task). State (2026-10-21): both run; B's last click on Luma is on (`registration.submit: true`, user, 2026-10-21).
 
 Read before working: `REQUIREMENTS.md` (what the user gets), `DESIGN.md` (what we build, the phases), `doc/SOURCES.md` (where events come from), `data/historical-events.json` (ChatGPT's leads, unverified).
 

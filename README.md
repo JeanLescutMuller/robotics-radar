@@ -2,7 +2,7 @@
 
 **A: keeps a shareable calendar of robotics and Physical AI events near Zürich up to date. B: registers me for the events I accept in it.**
 
-State (2026-10-21): both stages run on the Mac; B fills forms but does not send them yet (trust ramp).
+State (2026-10-21): both stages run on the Mac; B registers for real (the last click on Luma is on since 2026-10-21).
 
 ```mermaid
 flowchart LR

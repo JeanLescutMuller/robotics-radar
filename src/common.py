@@ -33,8 +33,8 @@ def gws(*args):
 
 
 def todoist_get(path):
-    # token: task-management's file (skill task-management, references/todoist_api.md); read, never printed
-    token = re.search(r'TODOIST_API_TOKEN="?([^"\n]+)', (Path.home() / '.config/task-management/todoist_token.env').read_text())[1]
+    # token: tasks' file (skill tasks, references/todoist_api.md); read, never printed
+    token = re.search(r'TODOIST_API_TOKEN="?([^"\n]+)', (Path.home() / '.config/tasks/todoist_token.env').read_text())[1]
     l_res, cursor = [], None
     while True:
         url = f'https://api.todoist.com/api/v1/{path}' + (f'&cursor={cursor}' if cursor else '')
@@ -46,7 +46,7 @@ def todoist_get(path):
 
 def todoist(method, path, body=None):
     """One Todoist API v1 write (or read): (HTTP status, parsed answer or None). Token as in todoist_get."""
-    token = re.search(r'TODOIST_API_TOKEN="?([^"\n]+)', (Path.home() / '.config/task-management/todoist_token.env').read_text())[1]
+    token = re.search(r'TODOIST_API_TOKEN="?([^"\n]+)', (Path.home() / '.config/tasks/todoist_token.env').read_text())[1]
     req = urllib.request.Request(f'https://api.todoist.com/api/v1/{path}', method=method, data=json.dumps(body).encode() if body is not None else None,
                                  headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'})
     try:

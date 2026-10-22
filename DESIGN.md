@@ -78,7 +78,7 @@ Trigger (user, 2026-10-21, replacing "every free event with score ≥75"): only 
 
 ## 6. Personal values and secrets: outside the repo (user, 2026-10-20)
 
-The repo stays public. `~/.config/robotics-radar/config.yaml` (chmod 600) holds the Couple calendar id, the Todoist project and section ids, the form answers; `config/config.example.yaml` shows the keys with placeholders. Tokens: `gws`'s own login; the Todoist token is read (never printed, never copied) from `~/.config/task-management/todoist_token.env`, as skill task-management's `references/todoist_api.md` says for scripts and jobs. The Chrome profile in `~/opt/robotics-radar/chrome/`, never committed. The calendar and Todoist ids are still in this repo's early commits: harmless alone (they give no access), so history is not rewritten.
+The repo stays public. `~/.config/robotics-radar/config.yaml` (chmod 600) holds the Couple calendar id, the Todoist project and section ids, the form answers; `config/config.example.yaml` shows the keys with placeholders. Tokens: `gws`'s own login; the Todoist token is read (never printed, never copied) from `~/.config/tasks/todoist_token.env`, as skill tasks's `references/todoist_api.md` says for scripts and jobs. The Chrome profile in `~/opt/robotics-radar/chrome/`, never committed. The calendar and Todoist ids are still in this repo's early commits: harmless alone (they give no access), so history is not rewritten.
 
 ## 7. Phases
 
@@ -115,15 +115,15 @@ src/run.py ── collect.py ──┬─ luma()      Luma's public API: categor
 
 | Handover said | Now | Why |
 |---|---|---|
-| Todoist "Robotics project" (its id) | that id is the Project **Professional**; event tasks go in its Section **Robotics** | Todoist reorganised on 2026-10-19 (skill `task-management`) |
-| description starts `Stream: Robotics - Events` | `Subsection: Events` in the metadata block at the end of the Description (after `created_by:`) | the `Stream:` line no longer exists; since 2026-10-21 the metadata lines go in a `<metadata>` … `</metadata>` block, last (skill `task-management`) |
+| Todoist "Robotics project" (its id) | that id is the Project **Professional**; event tasks go in its Section **Robotics** | Todoist reorganised on 2026-10-19 (skill `tasks`) |
+| description starts `Stream: Robotics - Events` | `Subsection: Events` in the metadata block at the end of the Description (after `created_by:`) | the `Stream:` line no longer exists; since 2026-10-21 the metadata lines go in a `<metadata>` … `</metadata>` block, last (skill `tasks`) |
 | ids in `config.example.yaml` | in `~/.config/robotics-radar/config.yaml` | public repo (§6) |
 | `docs/MIGRATION.md` | §7 | one plan |
 | notify on new ≥75 events | not built yet | §9 |
 
 ## 9. Notifications: later
 
-Not built (user, 2026-10-20): `~/dev/alerting` will carry them once its channels work. Todoist task "Send the radar's notifications through alerting" (Personal › Projects - IT, depends on alerting's channel setup). Until then the user sees everything in Todoist.
+Not built (user, 2026-10-20): `~/dev/tasks` will carry them once its channels work. Todoist task "Send the radar's notifications through alerting" (Personal › Projects - IT, depends on alerting's channel setup). Until then the user sees everything in Todoist.
 
 ## Acceptance
 

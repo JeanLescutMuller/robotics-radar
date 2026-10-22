@@ -18,7 +18,7 @@ def logged_in(ch):
     return '/signin' not in ch.page.url
 
 
-LABEL = 'Professional/Robotics'   # the Gmail label of the subject (skill task-management, "Linking")
+LABEL = 'Professional/Robotics'   # the Gmail label of the subject (skill tasks, "Linking")
 LOGIN_MAIL = r'sign-in code|new sign-in to luma|log-?in code|verification code'
 
 

@@ -1,4 +1,4 @@
-"""Stage A, one run (DESIGN.md §1): discover → merge → score → plan the writes (the shared calendar; deleting the event tasks of
+"""Stage A, the public stage, one run (DESIGN.md §1): discover → merge → score → plan the writes (the shared calendar; deleting the event tasks of
 events that are over) → write.
 
 Writes only with --write AND dry_run: false in ~/.config/robotics-radar/config.yaml (write.py); otherwise the planned writes

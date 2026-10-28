@@ -1,9 +1,9 @@
-"""Stage A: carry out a run's planned writes (Todoist, the shared calendar), each one read back. Called by run.py with --write.
+"""Stage A, the public stage: carry out a run's planned writes (Todoist, the shared calendar), each one read back. Called by run.py with --write.
 
 Only these actions write: delete_task (an event that is over), add_calendar, update_calendar, remove_calendar. merge_tasks is never automatic.
 Event tasks are made by stage B only (user, 2026-10-21).
 The shared calendar is public: calendar_body() writes only the event's own facts. The user is a guest of each entry (an invitation in
-their own calendar) unless they already have their own entry for it: their "accept" is what stage B registers for.
+their private calendar) unless they already have their own entry for it: their "accept" is what stage B registers for.
 """
 import json, re
 from datetime import date, datetime, timedelta, timezone

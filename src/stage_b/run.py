@@ -1,13 +1,16 @@
-"""Stage B, one run (DESIGN.md §5): register the user for the events they accepted in the shared calendar.
+"""Stage B, the private registration stage, one run (DESIGN.md §5): register the user for the events they accepted in the shared calendar,
+and show how it went in the title of their copy of the entry, in their private calendar (never in the shared calendar: public).
 
-The trigger is the user's answer only (user, 2026-10-21): "Yes" on the invitation stage A puts in their own calendar.
+The trigger is the user's answer only (user, 2026-10-21): "Yes" on the invitation stage A puts in their private calendar.
   accepted, Luma, free, every answer known      → the form is filled and sent                       (group auto)
   accepted, Luma, free, a question needs them   → Claude drafts, a comment on the event task, the user's "ok" sends it (ask first)
   accepted, not Luma / paid / closed            → a comment: register yourself, here                (by hand)
   declined after the radar registered them      → a comment: cancel it on Luma
+  Luma says pending or waitlist                 → read Luma's page again every run, until the host approves
 Reads:  the shared calendar (gws), Luma's public API and the event page in the radar's Chrome (logged in to the user's Luma
         account), stage A's state/radar.sqlite (read-only: which Todoist task is the event's), Todoist comments (the user's "ok").
-Writes: state/register.sqlite, state/register_report.md, Todoist (comments on the event task; the task itself if there is none).
+Writes: state/register.sqlite, state/register_report.md, Todoist (comments on the event task; the task itself if there is none),
+        the private calendar: the title of the user's copy of each accepted (or declined) entry, `🤖 <status> <title>` (STATUS).
         Writes to Todoist only with --write and dry_run: false; Luma's last click also needs registration.submit: true (trust ramp:
         until then the form is filled, a screenshot saved in state/shots/, nothing sent).
 Run:    .venv/bin/python src/stage_b/run.py [--write] > state/register.log 2>&1
@@ -25,7 +28,11 @@ from common import STATE, TZ, d_cfg, gws, log, todoist, todoist_get
 WRITING = '--write' in sys.argv and d_cfg.get('dry_run') is False
 SUBMIT = WRITING and d_cfg['registration'].get('submit') is True
 SHARED, ME, MARKER = d_cfg['calendar']['target_id'], d_cfg['calendar']['invite_email'].lower(), d_cfg['calendar']['marker']
-DONE = ('registered', 'pending', 'waitlist')        # on Luma: nothing left to do
+PREFIX = d_cfg['calendar']['title_prefix']
+DONE = ('registered', 'pending', 'waitlist')        # on Luma: nothing left to fill; pending and waitlist are read again until registered
+# state → the status in the title of the user's copy (user, 2026-10-28); a state not here (new): the shared entry's own title
+STATUS = {'registered': '✅', 'pending': '⏳ pending:', 'waitlist': '⏳ waitlist:', 'waiting': '❓ your ok:', 'filled': '📝 not sent:',
+          'by hand': '✋ register yourself:', 'failed': '⚠️ failed:', 'told to cancel': '✋ cancel on Luma:'}
 RUN_TS = int(time.time()); RUN_DT = datetime.fromtimestamp(RUN_TS, timezone.utc).isoformat(timespec='seconds')
 NOW = datetime.now(TZ).strftime('%Y-%m-%d %H:%M')
 
@@ -130,7 +137,13 @@ def step(r, answer):
             tell(r, f"robotics-radar {NOW}: you declined \"{r['title']}\" in the calendar, but the radar registered you on Luma ({r['state']}). Cancel it there if you won't go: {url}", 'cancel the registration')
             save(eid, state='told to cancel'); l_done.append((r, 'told to cancel'))
         return
-    if r['state'] in DONE + ('by hand', 'told to cancel') or (r['state'] == 'filled' and not SUBMIT): return
+    if r['state'] in ('registered', 'by hand', 'told to cancel') or (r['state'] == 'filled' and not SUBMIT): return
+    if r['state'] in ('pending', 'waitlist'):   # the host may approve later (Forgis, approved the next day, 2026-10-24): read Luma again
+        state = register.open_event(chrome(), url)
+        if state and state != r['state']:
+            save(eid, state=state, why=f'Luma now says {state}'); l_done.append((r, f'now {state} on Luma'))
+            if r['task_id']: tell(r, f"RESULT robotics-radar {NOW}: Luma now says {state} for \"{r['title']}\".")
+        return
     if not register.slug_of(url):
         tell(r, f"robotics-radar {NOW}: you accepted \"{r['title']}\". The radar registers only on Luma: register yourself here: {url}")
         save(eid, state='by hand', grp='by hand', why='not a Luma event'); l_done.append((r, 'by hand: not Luma')); return
@@ -162,7 +175,7 @@ def step(r, answer):
     else:
         l_ans = [register.known(q) for q in l_q]
     state, shot = register.fill(chrome(), url, l_q, l_ans, SUBMIT)
-    save(eid, state=state if state in DONE + ('filled',) else 'failed', grp=grp, why=why, answers=json.dumps(l_ans, ensure_ascii=False), shot=str(shot), by_radar=int(state in DONE))
+    save(eid, state=state if state in DONE + ('filled',) else 'failed', grp=grp, why=why, answers=json.dumps(l_ans, ensure_ascii=False), shot=str(shot), by_radar=int(SUBMIT))   # the radar clicked submit, even when Luma showed no state yet
     if state in DONE:
         if r['state'] == 'waiting':   # a task exists only when the user was asked: none for an autonomous registration
             tell(r, f"RESULT robotics-radar {NOW}: registration sent on Luma for \"{r['title']}\"; Luma says: {state}. Answers:\n\n{numbered(l_q, l_ans)}", 'approve the answers')
@@ -174,9 +187,25 @@ def step(r, answer):
     l_done.append((r, state))
 
 
+def show_status(ce, state):
+    """The status in the title of the user's copy of the entry (same event id, in their private calendar); the shared entry keeps its title.
+    Tested 2026-10-28: a guest's title change stays in their copy, and a later change of the shared title does not overwrite it, so the
+    title is rebuilt from the shared one on every run."""
+    title = ce.get('summary', '')
+    if state in STATUS: title = f"{PREFIX}{STATUS[state]} {title.removeprefix(PREFIX)}"
+    mine = gws('calendar', 'events', 'get', '--params', json.dumps({'calendarId': ME, 'eventId': ce['id']}))
+    if mine.get('summary') == title: return
+    if not WRITING: log(f"would rename in the private calendar: {mine.get('summary')} → {title}"); return
+    gws('calendar', 'events', 'patch', '--params', json.dumps({'calendarId': ME, 'eventId': ce['id'], 'sendUpdates': 'none'}), '--json', json.dumps({'summary': title}))
+    after = gws('calendar', 'events', 'get', '--params', json.dumps({'calendarId': ME, 'eventId': ce['id']})).get('summary')
+    shared = gws('calendar', 'events', 'get', '--params', json.dumps({'calendarId': SHARED, 'eventId': ce['id']})).get('summary')
+    if after != title or shared != ce.get('summary'): l_errors.append(f"title of {title}: reads back {after!r}, shared {shared!r}")
+    else: log(f'renamed in the private calendar: {title}')
+
+
 # ---------- the accepted (and declined) events ----------
 l_ce = entries()
-d_answer = {}
+d_answer, d_ce = {}, {ce['id']: ce for ce in l_ce}
 for ce in l_ce:
     answer = next((a.get('responseStatus') for a in ce.get('attendees') or [] if a['email'].lower() == ME), None)
     desc = ce.get('description') or ''
@@ -198,6 +227,9 @@ with stack:
                 tell(r, f"robotics-radar {NOW}: the radar could not register you for \"{r['title']}\" ({str(e)[:150]}). Register here: {r['url']}")
                 save(eid, state='by hand', why=f'failed twice: {str(e)[:150]}')
             else: save(eid, state='failed', why=str(e)[:200])
+    for eid in d_answer:
+        try: show_status(d_ce[eid], db.execute('SELECT state FROM registrations WHERE entry_id=?', (eid,)).fetchone()[0])
+        except Exception as e: l_errors.append(f"title of {d_ce[eid].get('summary')}: {str(e)[:200]}")
 
 # ---------- the report ----------
 def row(*cells): return '| ' + ' | '.join(str(c if c is not None else '').replace('|', '/').replace('\n', ' ') for c in cells) + ' |'

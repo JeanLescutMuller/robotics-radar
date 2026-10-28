@@ -1,17 +1,20 @@
 # robotics-radar
 
-**A: keeps a shareable calendar of robotics and Physical AI events near Zürich up to date. B: registers me for the events I accept in it.**
+| Stage | What I get |
+|---|---|
+| **stage A, the public stage** | a shareable calendar of robotics and Physical AI events near Zürich, always up to date |
+| **stage B, the private registration stage** | I accept an event, I am registered; the status shows in the title of the event in my private calendar (`🤖 ✅ …`, `⏳ pending: …`) |
 
-State (2026-10-21): both stages run on the Mac; B registers for real (the last click on Luma is on since 2026-10-21).
+State (2026-10-28): both stages run on the Mac; B registers for real (the last click on Luma is on since 2026-10-21) and shows the status since 2026-10-28.
 
 ```mermaid
 flowchart LR
-    S["sources<br/>Luma · Voxel51 · ETH/UZH · pages"] --> A["stage A, daily<br/>discover → merge → score"]
+    S["sources<br/>Luma · Voxel51 · ETH/UZH · pages"] --> A["stage A, the public stage, daily<br/>discover → merge → score"]
     A --> C["shared calendar<br/>public, QR code"]
-    A --> T["Todoist<br/>Professional › Robotics"]
-    C -- "invitation" --> M["my calendar<br/>I accept or decline"]
-    M -- "accepted" --> B["stage B, hourly<br/>Luma form in the radar's Chrome"]
-    B --> T
+    C -- "invitation" --> M["my private calendar<br/>I accept or decline"]
+    M -- "accepted" --> B["stage B, the private registration stage, hourly<br/>Luma form in the radar's Chrome"]
+    B -- "status in the title" --> M
+    B --> T["Todoist<br/>Professional › Robotics"]
     F["friends, people I meet"] -- "subscribe" --> C
 ```
 

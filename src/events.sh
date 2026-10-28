@@ -1,5 +1,5 @@
 #!/bin/bash
-# ~/opt/robotics-radar/events.sh: job robotics-radar.events (stage A), for job-runner (separate project, ~/dev/job-runner).
+# ~/opt/robotics-radar/events.sh: job robotics-radar.events (stage A, the public stage), for job-runner (separate project, ~/dev/job-runner).
 # Source: src/events.sh; ../install.sh copies it there and the Mac's LaunchAgent com.jeanlescut.robotics-radar.events
 # runs it every hour (and at login).
 # Requirements:

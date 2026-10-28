@@ -3,8 +3,8 @@
 #   1. the committed HEAD -> ~/opt/robotics-radar/ (its runtime data state/ and chrome/ are never overwritten)
 #   2. its Python: ~/opt/robotics-radar/.venv (requirements.txt), kept between deploys, rebuilt when requirements.txt changes
 #   3. two jobs, each a job-runner entrypoint + dashboard settings, run every hour and at login by its LaunchAgent (RunAtLoad):
-#        stage A  events.sh    job robotics-radar.events     com.jeanlescut.robotics-radar.events     (once a day: find events, the shared calendar)
-#        stage B  register.sh  job robotics-radar.register   com.jeanlescut.robotics-radar.register   (every hour: register what the user accepted)
+#        stage A (public)   events.sh    job robotics-radar.events     com.jeanlescut.robotics-radar.events     (once a day: find events, the shared calendar)
+#        stage B (private)  register.sh  job robotics-radar.register   com.jeanlescut.robotics-radar.register   (every hour: register what the user accepted)
 #   4. self-migration: the single job robotics-radar of before 2026-10-21 (entrypoint.sh, com.jeanlescut.robotics-radar) is removed
 # Writes happen only when ~/.config/robotics-radar/config.yaml says dry_run: false (and, for Luma's last click, registration.submit: true).
 # Needs: ~/.config/robotics-radar/config.yaml, task-management's Todoist token, gws logged in, /opt/anaconda3/bin/python3, Google Chrome.

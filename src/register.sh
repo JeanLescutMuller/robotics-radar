@@ -1,5 +1,5 @@
 #!/bin/bash
-# ~/opt/robotics-radar/register.sh: job robotics-radar.register (stage B), for job-runner (separate project, ~/dev/job-runner).
+# ~/opt/robotics-radar/register.sh: job robotics-radar.register (stage B, the private registration stage), for job-runner (separate project, ~/dev/job-runner).
 # Source: src/register.sh; ../install.sh copies it there and the Mac's LaunchAgent com.jeanlescut.robotics-radar.register
 # runs it every hour (and at login).
 # Requirements:

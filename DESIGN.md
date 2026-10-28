@@ -4,26 +4,30 @@ What we build to meet `REQUIREMENTS.md`, and the phases of the migration from Ch
 
 | | |
 |---|---|
-| Command | stage A: `~/opt/robotics-radar/events.sh` (job `robotics-radar.events`), hourly tick, one run a day; stage B: `~/opt/robotics-radar/register.sh` (job `robotics-radar.register`), every hour |
+| Command | stage A, the public stage: `~/opt/robotics-radar/events.sh` (job `robotics-radar.events`), hourly tick, one run a day; stage B, the private registration stage: `~/opt/robotics-radar/register.sh` (job `robotics-radar.register`), every hour |
 | Reads | the sources in `doc/SOURCES.md`; Google Calendar (all visible calendars; the user's answers on the shared calendar); Todoist Professional › Robotics; Gmail (Luma emails); `~/.config/robotics-radar/config.yaml` |
-| Writes | `~/opt/robotics-radar/state/radar.sqlite` (A), `state/register.sqlite` (B); the shared calendar's entries; event tasks and their comments; registrations in the user's name |
+| Writes | `~/opt/robotics-radar/state/radar.sqlite` (A), `state/register.sqlite` (B); the shared calendar's entries (A); the status in the title of the user's copy, in the private calendar (B); event tasks and their comments; registrations in the user's name |
 | Acts | yes: registers the user for the events they accept (§5); Claude tokens for scoring, summaries and form answers only (§3) |
-| Consumed by | the user: their own calendar (invitations), Todoist "My day"; anyone: the shared calendar (QR code: `src/stage_a/qr.py`) |
+| Consumed by | the user: their private calendar (invitations, with the status), Todoist "My day"; anyone: the shared calendar (QR code: `src/stage_a/qr.py`) |
 
 ## 1. The run
 
 Two stages, apart (user, 2026-10-21); they meet only through the shared calendar:
 
 ```
-STAGE A  src/stage_a/   events.sh, once a day                      STAGE B  src/stage_b/   register.sh, every hour
+STAGE A, THE PUBLIC STAGE                                          STAGE B, THE PRIVATE REGISTRATION STAGE
+src/stage_a/   events.sh, once a day                               src/stage_b/   register.sh, every hour
   ├─ 1 discover   Luma, Voxel51, pages; weekly web search            ├─ read the shared calendar: the user's answer on each entry
   ├─ 2 merge      SQLite state/radar.sqlite                          ├─ accepted, Luma, free:
   ├─ 3 score      claude -p: score + neutral blurb (new/changed)     │     auto      → fill the form in the radar's Chrome, send
   ├─ 4 write      the shared calendar (public) ──┐                   │     ask first → Claude drafts → comment → user's "ok" → send
-  │               event tasks (Todoist)          │                   ├─ accepted, not Luma / paid / closed → comment "register yourself"
-  └─ notify       NOT BUILT (§9)                 │                   └─ declined after registered → comment "cancel it"
-                                                 ▼                              ▲
-                     the user's own calendar: an invitation per entry ── accept ┘
+  │               event tasks of past events: deleted  │             ├─ accepted, not Luma / paid / closed → comment "register yourself"
+  └─ notify       NOT BUILT (§9)                 │                   ├─ pending / waitlist → Luma's page read again, every run
+                                                 │                   ├─ declined after registered → comment "cancel it"
+                                                 │                   └─ the status in the title of the user's copy ─┐
+                                                 ▼                              ▲                                    │
+                     the private calendar: an invitation per entry ── accept ───┘ ◄── 🤖 ✅ / ⏳ pending: … ──────────┘
+                     anyone: views / subscribes through the QR code (never sees the status)
                      anyone: views / subscribes through the QR code
 ```
 
@@ -61,13 +65,13 @@ The user's Google answers: "Yes" (accepted) stays when stage A changes an entry'
 
 First fill (phase 1): from Todoist Professional › Robotics, the calendars and `data/historical-events.json`, so the existing 40+ event tasks are matched, never duplicated.
 
-## 5. Registration (stage B): what the user accepted, in three groups
+## 5. Registration (stage B, the private registration stage): what the user accepted, in three groups
 
-Trigger (user, 2026-10-21, replacing "every free event with score ≥75"): only the events the user **accepts** in their calendar. Then the groups decide how:
+Trigger (user, 2026-10-21, replacing "every free event with score ≥75"): only the events the user **accepts** in their private calendar. Then the groups decide how:
 
 | Group | When | What the radar does |
 |---|---|---|
-| **auto** | free (price 0 on the official page), registration open (or a waitlist), score ≥75, the form asks only for known answers (name, email, company/role, LinkedIn), no new account | registers; waits for the confirmation email; the event task becomes `: confirm attendance` or `: check application status`; its Couple event says "registered" |
+| **auto** | free (price 0 on the official page), registration open (or a waitlist), score ≥75, the form asks only for known answers (name, email, company/role, LinkedIn), no new account | registers; Luma's "pending approval" or "waitlist" is read again every run until "registered" (Forgis, approved the next day, 2026-10-24) |
 | **ask first** | as auto, but the form has a free-text question ("why do you want to join?") | writes the answers (skill `writing-for-others`) in a comment on the event task, retitles it `: approve my answers`; the user's "ok" in a comment → the next run submits |
 | **never** | paid, a new account needed, a password or a CAPTCHA, invitation code, unclear eligibility | event task only, as today |
 
@@ -75,6 +79,7 @@ Trigger (user, 2026-10-21, replacing "every free event with score ≥75"): only 
 - Logged in once: the user logs in to Luma, Eventbrite and Meetup in `~/opt/robotics-radar/chrome/` in a visible window (skill `chrome-headless`), then headless forever; a login page later = an event task for the user, never a password typed.
 - Trust ramp: planned as two weeks of filled forms and screenshots before the last click is made (`registration.submit` in the private config). Skipped (user, 2026-10-21: "turn it on") after 3 Luma forms were filled correctly; the first real registrations are checked by a Todoist task (due 2026-10-23).
 - Proof: "registered" only after the site's confirmation email (or page) is seen; otherwise the event task says what failed.
+- Status (user, 2026-10-28): after each run, the title of the user's copy of each accepted (or declined) entry, in their private calendar, starts with the status (`STATUS` in `src/stage_b/run.py`: `🤖 ✅ <title>`, `🤖 ⏳ pending: <title>`…). **Choice:** rename the user's copy (same event id, `calendarId` = the user's address), read back, the shared entry checked unchanged. **Reason:** a guest's rename stays in their copy and is not overwritten when the organiser renames (tested 2026-10-28 on a throwaway calendar); stage A skips the copy by its organiser, not its title. **Rejected:** the status in the shared entry (public); a second event in the private calendar (a duplicate).
 
 ## 6. Personal values and secrets: outside the repo (user, 2026-10-20)
 

@@ -1,4 +1,4 @@
-"""Stage B: one Luma registration - read the form's questions, decide the group, draft answers, fill the form, submit.
+"""Stage B, the private registration stage: one Luma registration - read the form's questions, decide the group, draft answers, fill the form, submit.
 
 Groups (DESIGN.md §5), from Luma's own data (the event's registration_questions), never by clicking:
   auto       every required question has a known answer (config form:, terms accepted) → register

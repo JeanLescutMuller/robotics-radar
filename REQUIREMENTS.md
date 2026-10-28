@@ -31,7 +31,7 @@ An event task only for an event I **accepted** and the radar **could not registe
 ## Registration (stage B, the private registration stage)
 Only the events I **accepted** in my private calendar are registered, not every good one (user, 2026-10-21). An accepted free Luma event is registered without me, and its event task says it is done (Luma's confirmation) and what comes next. When a form needs my own words, I approve the drafted answers first in a comment on the event task. Nothing paid, no new account, no password typed, no CAPTCHA bypassed: those, and events not on Luma, get a comment "register yourself, here". If I decline an event the radar registered me for, I am told to cancel it. I can check the first registrations before they are sent for real.
 
-**Status in my private calendar** (user, 2026-10-28): the title of my copy of the event says how the registration stands, e.g. `🤖 ✅ Forgis Research Night` (registered), `🤖 ⏳ pending: …` (waiting for the host's approval, checked again every hour), `🤖 ❓ your ok: …`, `🤖 ✋ register yourself: …`, `🤖 ⚠️ failed: …`. Only my copy is renamed: the shared calendar never shows it, and no new event is added to my private calendar.
+**Status in my private calendar** (user, 2026-10-28): the title of my copy of the event says how the registration stands, e.g. `🤖 ✅ <title>` (registered), `🤖 ⏳ pending: …` (waiting for the host's approval, checked again every hour), `🤖 ❓ your ok: …`, `🤖 ✋ register yourself: …`, `🤖 ⚠️ failed: …`. Only my copy is renamed: the shared calendar never shows it, and no new event is added to my private calendar.
 
 ## Notification
 Later (user, 2026-10-20): through the alerting project once it works. Until then, nothing but Todoist and the calendar.

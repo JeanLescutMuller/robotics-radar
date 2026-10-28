@@ -138,7 +138,7 @@ def step(r, answer):
             save(eid, state='told to cancel'); l_done.append((r, 'told to cancel'))
         return
     if r['state'] in ('registered', 'by hand', 'told to cancel') or (r['state'] == 'filled' and not SUBMIT): return
-    if r['state'] in ('pending', 'waitlist'):   # the host may approve later (Forgis, approved the next day, 2026-10-24): read Luma again
+    if r['state'] in ('pending', 'waitlist'):   # the host may approve later (one did the next day, 2026-10-24): read Luma again
         state = register.open_event(chrome(), url)
         if state and state != r['state']:
             save(eid, state=state, why=f'Luma now says {state}'); l_done.append((r, f'now {state} on Luma'))

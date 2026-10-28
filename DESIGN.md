@@ -71,7 +71,7 @@ Trigger (user, 2026-10-21, replacing "every free event with score ≥75"): only 
 
 | Group | When | What the radar does |
 |---|---|---|
-| **auto** | free (price 0 on the official page), registration open (or a waitlist), score ≥75, the form asks only for known answers (name, email, company/role, LinkedIn), no new account | registers; Luma's "pending approval" or "waitlist" is read again every run until "registered" (Forgis, approved the next day, 2026-10-24) |
+| **auto** | free (price 0 on the official page), registration open (or a waitlist), score ≥75, the form asks only for known answers (name, email, company/role, LinkedIn), no new account | registers; Luma's "pending approval" or "waitlist" is read again every run until "registered" (a host approved the next day, 2026-10-24) |
 | **ask first** | as auto, but the form has a free-text question ("why do you want to join?") | writes the answers (skill `writing-for-others`) in a comment on the event task, retitles it `: approve my answers`; the user's "ok" in a comment → the next run submits |
 | **never** | paid, a new account needed, a password or a CAPTCHA, invitation code, unclear eligibility | event task only, as today |
 

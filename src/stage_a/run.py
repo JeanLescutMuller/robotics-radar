@@ -286,11 +286,15 @@ if log_task:
             gpt_date, l_gpt_ev = d_gpt.get('run_date'), d_gpt.get('events', [])
             db.execute('CREATE TABLE IF NOT EXISTS chatgpt (ts INT, dt TEXT, run_date TEXT, title TEXT, start TEXT, url TEXT, score INT, would_do TEXT, event_id INT, PRIMARY KEY (run_date, title, start))')
     except Exception as e: log(f'chatgpt log: {e}'); l_errors.append(f'chatgpt log: {e}')
+# compared: only events the radar still follows (a source found it this run, or it has a task or a calendar entry); not the rows
+# of ChatGPT's deleted tasks that no source finds (2026-10-28: 17 of them made "radar only" look bigger and doubled SURGE)
+l_live = [e for e in all_events() if e['last_seen'] == RUN_DT or e['task_id'] or e['calendar_ids']]
+n_stale = sum(1 for e in all_events() if e['start'] and day(e['start']) >= TODAY) - sum(1 for e in l_live if e['start'] and day(e['start']) >= TODAY)
 d_gpt_match = {}
 for g in l_gpt_ev:
     gv = {'title': g.get('title') or '', 'start': day(g.get('start')) if g.get('start') else None,
           'urls': {canon_url(u) for u in (g.get('official_url'), g.get('registration_url')) if u}}
-    eid = next((e['event_id'] for e in all_events() if same_event(gv, match_view(e), s_listing)), None)
+    eid = next((e['event_id'] for e in l_live if same_event(gv, match_view(e), s_listing)), None)
     d_gpt_match[id(g)] = eid
     db.execute('INSERT OR REPLACE INTO chatgpt VALUES (?,?,?,?,?,?,?,?,?)', (RUN_TS, RUN_DT, gpt_date, gv['title'], g.get('start'), g.get('official_url'),
                                                                            g.get('score'), json.dumps(g.get('would_do')), eid))
@@ -319,7 +323,7 @@ for action, head in (('delete_task', '| Event | Task | Why |'), ('merge_tasks', 
                   'update_calendar': lambda: row(e['start'][:16], e['title'], ', '.join(d['fields'])),
                   'remove_calendar': lambda: row(e['title'], t, d['why'])}[action]())
 # side by side with ChatGPT's dry-run (its latest log comment)
-d_ev = {e['event_id']: e for e in all_events()}
+d_ev = {e['event_id']: e for e in l_live}
 s_gpt_eids = {v for v in d_gpt_match.values() if v}
 L += ['', f"## ChatGPT vs radar (ChatGPT's run of {gpt_date or 'none yet'})", '', '| Event date | ChatGPT event | ChatGPT score | Radar score | Radar tracks it? |', '|---|---|---|---|---|']
 for g in sorted(l_gpt_ev, key=lambda g: g.get('start') or ''):
@@ -330,6 +334,7 @@ l_radar_only = [e for e in d_ev.values() if e['start'] and day(e['start']) >= TO
                 and e['event_id'] not in s_gpt_eids]
 if l_gpt_ev:
     L += ['', f'Radar only ({len(l_radar_only)}): ' + '; '.join(f"{e['start'][:10]} {e['title']} ({e['score']})" for e in sorted(l_radar_only, key=lambda e: e['start']))]
+    L += ['', f'Left out of this comparison: {n_stale} upcoming events that no source found this run, with no task and no calendar entry (old ChatGPT tasks).']
 if l_errors: L += ['', '## Errors', ''] + [f'- {x}' for x in l_errors]
 text = '\n'.join(L) + '\n'
 (STATE / 'runs' / f"{datetime.fromtimestamp(RUN_TS, TZ):%Y-%m-%d_%H%M}.md").write_text(text)

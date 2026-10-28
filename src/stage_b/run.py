@@ -223,6 +223,7 @@ with stack:
         try: step(r, answer)
         except Exception as e:
             log(f"{r['title']}: {e}"); l_errors.append(f"{r['title']}: {str(e)[:200]}")
+            if r['state'] in DONE: continue   # only the check again failed (2026-10-28: Chrome held by another run): Luma's state stands
             if r['state'] == 'failed':   # the second failure: the user takes it
                 tell(r, f"robotics-radar {NOW}: the radar could not register you for \"{r['title']}\" ({str(e)[:150]}). Register here: {r['url']}")
                 save(eid, state='by hand', why=f'failed twice: {str(e)[:150]}')

@@ -28,6 +28,8 @@ pages:
   - https://www.epfl.ch/campus/art-culture/museum-exhibitions/archizoom/stefana-parascho-2/
   - https://www.eventbrite.co.uk/e/future-of-sustainability-robotics-2026-tickets-2000008869367
   - https://ethz.ch/de/news-und-veranstaltungen/veranstaltungen/eth-open-i.html
+  # ChatGPT found it, the radar did not (2026-10-28): at ETH Zürich, Nov 11-12; remove once past
+  - https://summit.sprintrobotics.org/europe-summit/
 # pages filled by JavaScript: plain HTTP gets no events; read with the headless Chrome of phase 4 (not yet)
 pages_js:
   - https://darecampus.ch/dare-campus-calendar-2026.html

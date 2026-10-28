@@ -2,7 +2,7 @@
 
 | Stage | What I get |
 |---|---|
-| **stage A, the public stage** | a shareable calendar of robotics and Physical AI events near Zürich, always up to date |
+| **stage A, the public stage** | a shareable calendar of the robotics and Physical AI events worth the trip (in or near Zürich, and the big ones in Europe), always up to date |
 | **stage B, the private registration stage** | I accept an event, I am registered; the status shows in the title of the event in my private calendar (`🤖 ✅ …`, `⏳ pending: …`) |
 
 State (2026-10-28): both stages run on the Mac; B registers for real (the last click on Luma is on since 2026-10-21) and shows the status since 2026-10-28.

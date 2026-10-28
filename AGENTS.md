@@ -4,7 +4,7 @@ Two stages (user, 2026-10-21; names, user, 2026-10-28):
 
 | Stage | Code, job | What it does | Writes |
 |---|---|---|---|
-| **stage A, the public stage** | `src/stage_a/`, job `robotics-radar.events`, daily | finds robotics and Physical AI events near Zürich for the next six months and keeps **the shared calendar** up to date | the shared calendar (public: nothing about the user); deletes the event tasks of events that are over |
+| **stage A, the public stage** | `src/stage_a/`, job `robotics-radar.events`, daily | finds the robotics and Physical AI events worth the trip (in or near Zürich, and the big ones in Europe; user, 2026-10-28) for the next six months and keeps **the shared calendar** up to date | the shared calendar (public: nothing about the user); deletes the event tasks of events that are over |
 | **stage B, the private registration stage** | `src/stage_b/`, job `robotics-radar.register`, hourly | registers the user for the events they **accepted**, and shows the **status** in the title of their copy, in their **private calendar** | Luma, event tasks, the title of the user's copy (never a new event) |
 
 They meet only through the shared calendar (and B reads A's `state/radar.sqlite` to find an event's task). State (2026-10-28): both run; B's last click on Luma is on (`registration.submit: true`, user, 2026-10-21); B shows the status in the private calendar since 2026-10-28.

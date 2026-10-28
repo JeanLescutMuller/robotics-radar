@@ -152,7 +152,8 @@ def broad_search(db, l_known_titles, l_cost):
     if row[0] and datetime.now(timezone.utc).timestamp() - row[0] < d_src['broad_search_days'] * 86400: return [], False
     today = datetime.now(TZ).date()
     prompt = f"""Today is {today}. Search the web for upcoming events between {today} and {HORIZON.date()} in Zürich or elsewhere in
-Switzerland (or online, if strongly about robotics) about: robotics, embodied / Physical AI, humanoids, robot learning, manipulation,
+Switzerland (or online, if strongly about robotics), and the big robotics events elsewhere in Europe worth the trip from Zürich
+(major conferences, summits, trade fairs; not small local meetups abroad) about: robotics, embodied / Physical AI, humanoids, robot learning, manipulation,
 autonomous systems, computer vision for robotics, VLM evaluation, autonomous manufacturing, robotics startups, hardware / deep tech.
 Look at organisers such as Swiss Robotics Association, ETH RobotX, ETH and UZH robotics labs, EPFL, DARE Campus, Zürich AI ecosystem,
 Women in Robotics Switzerland, Switzerland Innovation Park Zürich, Founderful, ANYbotics, ABB Robotics, Hexagon, RIVR, Ascento,

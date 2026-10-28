@@ -6,17 +6,17 @@ Two stages, clearly apart (user, 2026-10-21; names, user, 2026-10-28):
 
 | Stage | What I get |
 |---|---|
-| **stage A, the public stage** | a calendar of robotics events near Zürich, always up to date, that I can share: friends and people I meet at events subscribe to it with a QR code |
+| **stage A, the public stage** | a calendar of the robotics events worth the trip, always up to date: every relevant one in or near Zürich, and the big ones elsewhere in Europe (user, 2026-10-28), that I can share: friends and people I meet at events subscribe to it with a QR code |
 | **stage B, the private registration stage** | I accept an event in my private calendar, and I am registered for it automatically; the status shows in the event's title there |
 
 ## Discovery
-On **every** run rebuild/refresh credible upcoming inventory for approximately six months; explicitly revisit announcements and changed listings from at least 30 days. Search Zürich/Swiss robotics, embodied/Physical AI, autonomous systems, robot learning, manipulation, humanoids, CV for robotics, multimodal/VLM, evaluation, autonomous manufacturing, robotics startups and hardware/deep tech. Include useful online talks.
+On **every** run rebuild/refresh credible upcoming inventory for approximately six months; explicitly revisit announcements and changed listings from at least 30 days. Search Zürich/Swiss robotics, embodied/Physical AI, autonomous systems, robot learning, manipulation, humanoids, CV for robotics, multimodal/VLM, evaluation, autonomous manufacturing, robotics startups and hardware/deep tech. Include useful online talks, and the big robotics events elsewhere in Europe worth the trip from Zürich: major conferences, summits, trade fairs (user, 2026-10-28).
 
 ## Normalize
 Record title, organizer, local date, start/end, timezone, venue/city, format, official event and registration URLs, all sources, price/currency, registration state/deadline, eligibility, language, summary, first/last seen, checked timestamp. Merge listings by URL, normalized title/date/organizer, venue and aliases. Use past events only to discover recurring organizers.
 
 ## Scoring
-0–100 combining career pivot relevance, networking/prestige, technical quality, Zürich convenience, price/value, eligibility, scheduling and uniqueness. Bonus for robotics CV/evaluation, autonomous manufacturing, founder networks, Google Founder's Stories with robotics connection, TEDx at Google Europallee. Penalize commercial/generic AI, expensive, invitation-only, full and travel-heavy events. 85–100 exceptional, 75–84 high, 60–74 interesting, below 60 suppress.
+0–100 combining career pivot relevance, networking/prestige, technical quality, price/value, eligibility and uniqueness, weighed against the cost of getting there (user, 2026-10-28): in or near Zürich the trip costs almost nothing, so every relevant event is worth considering; elsewhere in Europe the event must be worth the trip: a big one (major conference, summit, trade fair) can score high, a small one cannot. The date never changes the score: how soon or how far off an event is says nothing about its worth (user, 2026-10-28). Bonus for robotics CV/evaluation, autonomous manufacturing, founder networks, Google Founder's Stories with robotics connection, TEDx at Google Europallee. Penalize commercial/generic AI, expensive, invitation-only and full events. 85–100 exceptional, 75–84 high, 60–74 interesting, below 60 suppress.
 
 ## Calendar (stage A, the public stage)
 The radar fills **the shared calendar** "Robotics & Physical AI events near Zürich", public, instead of my own calendars (user, 2026-10-21; its id: `calendar.target_id` in `~/.config/robotics-radar/config.yaml`). Anyone with the QR code can view it and subscribe. Every upcoming event I can still attend or register for (registration open, a waitlist, not yet open, or no registration needed) is on it (user, 2026-10-21); an event closed to me (full without waitlist, cutoff passed) is not.

@@ -8,7 +8,7 @@ Reads:  collect.py's sources, Todoist Professional › Robotics, every calendar,
 Writes: state/radar.sqlite, state/runs/<date>.md, state/run_report.md (the latest). All git-ignored.
 Run:    python3 src/stage_a/run.py [--no-search] [--write] > state/run.log 2>&1
 """
-import json, re, sqlite3, sys, time
+import hashlib, json, re, sqlite3, sys, time
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))   # src/: common.py, shared with stage B
@@ -177,12 +177,13 @@ for _, subject in sorted(l_mail):
 log(f'linked: {len(l_tasks)} event tasks, {n_cal} calendar entries, {len(l_mail)} Luma emails')
 
 # ---------- 4. score new or changed events (Claude, in batches) ----------
-def fp(e): return json.dumps([e[k] for k in FINGERPRINT + ('user_state',)])   # rescored when the user's own state changes too
+rubric = (Path(__file__).resolve().parents[2] / 'REQUIREMENTS.md').read_text().split('## Scoring')[1].split('##')[0].strip()
+# rescored when the user's own state changes too, and when the rubric changes (2026-10-28: every event rescored once)
+def fp(e): return json.dumps([e[k] for k in FINGERPRINT + ('user_state',)] + [hashlib.sha1(rubric.encode()).hexdigest()[:8]])
 l_to_score = [e for e in all_events() if e['start'] and day(e['start']) >= TODAY and (e['scored_fp'] != fp(e) or (e['blurb'] is None and e['rank'] > RANK['todoist']))
               and (e['rank'] > RANK['todoist'] or e['score'] is None)]   # a task's event: only when the task gave no score
 profile_path = Path.home() / 'opt/my-setup/context/snapshot/facts/robotics.md'
 profile = profile_path.read_text()[:6000] if profile_path.exists() else ''
-rubric = (Path(__file__).resolve().parents[2] / 'REQUIREMENTS.md').read_text().split('## Scoring')[1].split('##')[0].strip()
 for i in range(0, len(l_to_score), 20):
     l_batch = l_to_score[i:i + 20]
     l_in = [{'id': e['event_id'], 'title': e['title'], 'start': e['start'], 'venue': e['venue'] or e['city'], 'online': bool(e['online']),

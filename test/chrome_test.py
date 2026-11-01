@@ -13,6 +13,9 @@ from pathlib import Path
 
 tmp = Path(tempfile.mkdtemp(prefix='radar-chrome-test-')).resolve()
 os.environ['CHROME_STATE'] = str(tmp / 'state')   # before the kit is imported: it reads it once
+# A test against a scratch record runs as a script run by hand, not as the Claude session that started it: the
+# session's authorization (agent-chrome authorize-tab --visibility invisible) lives in the real record (2 Nov 2026).
+os.environ.pop('CLAUDE_CODE_SESSION_ID', None)
 ROOT = Path(__file__).resolve().parent.parent
 sys.path[:0] = [str(ROOT / 'src/stage_b'), str(ROOT / 'src')]
 import chrome          # noqa: E402

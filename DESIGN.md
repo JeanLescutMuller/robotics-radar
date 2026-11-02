@@ -67,7 +67,7 @@ First fill (phase 1): from Todoist Professional › Robotics, the calendars and 
 
 ## 5. Registration (stage B, the private registration stage): what the user accepted, in three groups
 
-Trigger (user, 2026-10-21, replacing "every free event with score ≥75"): only the events the user **accepts** in their private calendar. Then the groups decide how:
+Trigger (user, 2026-10-21, replacing "every free event with score ≥75"): only the events the user **accepts** in their private calendar: "Yes", and since 2026-11-02 "Maybe" too (user; Google's `tentative`). Then the groups decide how:
 
 | Group | When | What the radar does |
 |---|---|---|

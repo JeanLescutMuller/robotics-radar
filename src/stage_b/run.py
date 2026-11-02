@@ -1,7 +1,7 @@
 """Stage B, the private registration stage, one run (DESIGN.md §5): register the user for the events they accepted in the shared calendar,
 and show how it went in the title of their copy of the entry, in their private calendar (never in the shared calendar: public).
 
-The trigger is the user's answer only (user, 2026-10-21): "Yes" on the invitation stage A puts in their private calendar.
+The trigger is the user's answer only (user, 2026-10-21): "Yes" or "Maybe" (user, 2026-11-02; Google's `tentative`) on the invitation stage A puts in their private calendar.
   accepted, Luma, free, every answer known      → the form is filled and sent                       (group auto)
   accepted, Luma, free, a question needs them   → Claude drafts, a comment on the event task, the user's "ok" sends it (ask first)
   accepted, not Luma / paid / closed            → a comment: register yourself, here                (by hand)
@@ -129,6 +129,9 @@ def chrome():
     return ch
 
 
+SAID = {'accepted': 'accepted', 'tentative': 'said maybe to'}
+
+
 def step(r, answer):
     """Moves one accepted (or declined) event one step on. r: its row."""
     eid, url = r['entry_id'], r['url']
@@ -145,7 +148,7 @@ def step(r, answer):
             if r['task_id']: tell(r, f"RESULT robotics-radar {NOW}: Luma now says {state} for \"{r['title']}\".")
         return
     if not register.slug_of(url):
-        tell(r, f"robotics-radar {NOW}: you accepted \"{r['title']}\". The radar registers only on Luma: register yourself here: {url}")
+        tell(r, f"robotics-radar {NOW}: you {SAID[answer]} \"{r['title']}\". The radar registers only on Luma: register yourself here: {url}")
         save(eid, state='by hand', grp='by hand', why='not a Luma event'); l_done.append((r, 'by hand: not Luma')); return
     d_over = approval(r) if r['state'] == 'waiting' else None
     if r['state'] == 'waiting' and d_over is None: return   # asked, no "ok" yet: nothing to open
@@ -155,12 +158,12 @@ def step(r, answer):
     if state:
         save(eid, state=state, grp=grp, why=f'Luma already says {state}'); l_done.append((r, f'already {state} on Luma')); return
     if grp == 'never':
-        tell(r, f"robotics-radar {NOW}: you accepted \"{r['title']}\", but the radar can't register you: {why}. Here: {url}")
+        tell(r, f"robotics-radar {NOW}: you {SAID[answer]} \"{r['title']}\", but the radar can't register you: {why}. Here: {url}")
         save(eid, state='by hand', grp=grp, why=why); l_done.append((r, f'by hand: {why}')); return
     if grp == 'ask first':
         if r['state'] != 'waiting':   # first time: draft, ask
             l_ans, _ = register.draft(r['title'], l_q)
-            asked = tell(r, f"RECOMMENDATION robotics-radar {NOW}: you accepted \"{r['title']}\" ({r['start'][:16].replace('T', ' ')}). Its Luma form asks:\n\n"
+            asked = tell(r, f"RECOMMENDATION robotics-radar {NOW}: you {SAID[answer]} \"{r['title']}\" ({r['start'][:16].replace('T', ' ')}). Its Luma form asks:\n\n"
                             f"{numbered(l_q, l_ans)}\n\nReply \"ok\" in a comment to send it. To change an answer, add lines like \"2: your answer\" "
                             f"to the same comment. \"?\" = only you know it: give it, or the radar can't send. {url}", 'approve the answers')
             save(eid, state='waiting', grp=grp, why=why, questions=json.dumps(l_q, ensure_ascii=False), answers=json.dumps(l_ans, ensure_ascii=False), asked_at=asked)
@@ -209,14 +212,14 @@ d_answer, d_ce = {}, {ce['id']: ce for ce in l_ce}
 for ce in l_ce:
     answer = next((a.get('responseStatus') for a in ce.get('attendees') or [] if a['email'].lower() == ME), None)
     desc = ce.get('description') or ''
-    if answer not in ('accepted', 'declined'): continue
+    if answer not in ('accepted', 'tentative', 'declined'): continue   # "Maybe" registers too (user, 2026-11-02)
     if answer == 'declined' and not db.execute('SELECT 1 FROM registrations WHERE entry_id=?', (ce['id'],)).fetchone(): continue
     start = (ce['start'].get('dateTime') or ce['start'].get('date'))
     db.execute('INSERT OR IGNORE INTO registrations (ts, dt, entry_id, event_ref, title, start, url, state) VALUES (?,?,?,?,?,?,?,?)',
                (RUN_TS, RUN_DT, ce['id'], re.search(r'Robotics Radar event: (\S+)', desc)[1], re.sub(r'^\W+\s*', '', ce.get('summary', '')).replace(' (time not confirmed)', ''),
                 start, line(desc, 'Register') or line(desc, 'Official page'), 'new'))
     d_answer[ce['id']] = answer
-log(f"{len(l_ce)} entries in the shared calendar; accepted {sum(a == 'accepted' for a in d_answer.values())}, declined {sum(a == 'declined' for a in d_answer.values())}")
+log(f"{len(l_ce)} entries in the shared calendar; accepted {sum(a == 'accepted' for a in d_answer.values())}, maybe {sum(a == 'tentative' for a in d_answer.values())}, declined {sum(a == 'declined' for a in d_answer.values())}")
 with stack:
     for eid, answer in d_answer.items():
         r = db.execute('SELECT * FROM registrations WHERE entry_id=?', (eid,)).fetchone()

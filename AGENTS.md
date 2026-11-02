@@ -40,7 +40,7 @@ Read before working: `REQUIREMENTS.md` (what the user gets), `DESIGN.md` (what w
 | **private calendar** | the user's own Google calendar (their account's main one), where each shared-calendar entry arrives as an invitation: **the user's copy** of the entry | my calendar, own calendar, personal calendar |
 | **status** | how the registration stands, at the start of the title of the user's copy: `🤖 ✅ <title>` registered, `⏳ pending:`, `⏳ waitlist:`, `❓ your ok:`, `✋ register yourself:`, `⚠️ failed:` (`STATUS` in `src/stage_b/run.py`) | state (the database column), label |
 | **shared calendar** | the public Google calendar "Robotics & Physical AI events near Zürich" that stage A fills, shared by a QR code | public calendar, feed |
-| **accept** | the user's "Yes" on the invitation of a shared-calendar entry in their private calendar: stage B's only trigger | RSVP, opt in |
+| **accept** | the user's "Yes" or "Maybe" (user, 2026-11-02; Google's `tentative`) on the invitation of a shared-calendar entry in their private calendar: stage B's only trigger | RSVP, opt in |
 
 ## Commands
 

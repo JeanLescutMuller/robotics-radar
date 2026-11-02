@@ -130,6 +130,34 @@ src/run.py ── collect.py ──┬─ luma()      Luma's public API: categor
 
 Not built (user, 2026-10-20): `~/dev/tasks` will carry them once its channels work. Todoist task "Send the radar's notifications through alerting" (Personal › Projects - IT, depends on alerting's channel setup). Until then the user sees everything in Todoist.
 
+## 10. Three stages: A general, B for Jean, C register (user, 2026-11-02; not built)
+
+Why (user, 2026-11-02): the value of an event is the people the user can meet. Forgis Research Night (DARE, 28 Oct) had a good talk, but the room was mostly students and PhDs looking for a job. A one-off session that day ranked the 76 Luma guests for the user (session `18f0ae7f`, workflow `forgis-attendee-research`); stage B makes that automatic.
+
+```
+A  general, shareable (Henrik)          B  for Jean, private                         C  register what the user accepts
+   physical AI / robotics near Zürich      Luma, free, < 100 guests: register          today's stage B (§5), renamed
+   + big events abroad: size and           first, even before the user decides,
+     relevance vs. trip from Zürich           to see the guest list
+   neutral score, shared calendar ──────►  speakers, guests, students vs. pros ──►  icon + people plan in the
+                                           people to meet + why + opener              user's private copy ─► accept ─► C
+```
+
+| Stage | Rule |
+|---|---|
+| A | the score stays neutral (topic, size, trip); the personal part of today's score moves to B |
+| B, register to see | a Luma event, free, fewer than 100 guests: B registers by itself, whatever the user's interest, when Luma shows the guest list only to registered guests (user, 2026-11-02) |
+| B, 100 guests or more | no guest research (too many people): speakers and organiser only |
+| B, output | an icon before the status in the title of the user's copy (`🔥 ✅ <title>`), and the people plan (name, photo, LinkedIn, why, opener) in its description; never in the shared calendar |
+| C | unchanged: registers the events the user accepts that B did not already register |
+
+| Icon | Meaning |
+|---|---|
+| 🔥 | at least one person the user should really meet |
+| ⭐ | good talk or good crowd, no one person |
+| ▫️ | optional: mostly students or PhDs |
+| 💤 | not worth going for the user |
+
 ## Acceptance
 
 - Two runs in a row on the same day write nothing the second time.
@@ -154,3 +182,6 @@ Not built (user, 2026-10-20): `~/dev/tasks` will carry them once its channels wo
 ## Open points
 
 - Unconfirmed time: a whole-day Couple event "time not confirmed", updated when the time is published [proposed 2026-10-21].
+- (2026-11-02) a registration B made only to see the guest list, for an event the user then declines or does not accept by the day before: cancelled by the radar, so the spot goes back to the waitlist [proposed].
+- (2026-11-02) guest research: public web search only, or also the slow LinkedIn loop in the "Claude - LinkedIn" Chrome profile (reserved for job-applications since 2026-10-19).
+- (2026-11-02) does Luma always hide the guest list before registration? [to check on the next Luma event]

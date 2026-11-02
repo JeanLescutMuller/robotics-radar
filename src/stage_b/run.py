@@ -3,7 +3,8 @@ and show how it went in the title of their copy of the entry, in their private c
 
 The trigger is the user's answer only (user, 2026-10-21): "Yes" or "Maybe" (user, 2026-11-02; Google's `tentative`) on the invitation stage A puts in their private calendar.
   accepted, Luma, free, every answer known      → the form is filled and sent                       (group auto)
-  accepted, Luma, free, a question needs them   → Claude drafts, a comment on the event task, the user's "ok" sends it (ask first)
+  accepted, Luma, free, other questions         → Claude drafts the answers (why join? too) from the user's facts and sends them (user, 2026-11-02)
+  … and a fact only the user knows ("?")        → a comment on the event task, the user's answer and "ok" send it (ask first)
   accepted, not Luma / paid / closed            → a comment: register yourself, here                (by hand)
   declined after the radar registered them      → a comment: cancel it on Luma
   Luma says pending or waitlist                 → read Luma's page again every run, until the host approves
@@ -113,6 +114,11 @@ def approval(r):
     return None
 
 
+def missing(l_q, l_ans):
+    """The numbers (from 1) of the required questions still without an answer ("?" = a fact only the user knows)."""
+    return [str(i + 1) for i, (q, a) in enumerate(zip(l_q, l_ans)) if q['required'] and a in (None, '', '?', ['?'])]
+
+
 def numbered(l_q, l_ans):
     return '\n'.join(f"{i + 1}. {q['label']}{'' if q['required'] else ' (optional)'}: "
                      + ('; '.join(a) if isinstance(a, list) else 'accepted' if a == 'accept' else a if a not in (None, '') else '(left empty)')
@@ -160,9 +166,12 @@ def step(r, answer):
     if grp == 'never':
         tell(r, f"robotics-radar {NOW}: you {SAID[answer]} \"{r['title']}\", but the radar can't register you: {why}. Here: {url}")
         save(eid, state='by hand', grp=grp, why=why); l_done.append((r, f'by hand: {why}')); return
+    l_ans = None
+    if grp == 'ask first' and r['state'] != 'waiting':   # Claude drafts every answer (why join? too); the user is asked only for a fact Claude lacks, "?" (user, 2026-11-02)
+        l_ans, _ = register.draft(r['title'], l_q)
+        if not missing(l_q, l_ans): grp, why = 'auto', 'answers drafted from your facts'
     if grp == 'ask first':
-        if r['state'] != 'waiting':   # first time: draft, ask
-            l_ans, _ = register.draft(r['title'], l_q)
+        if r['state'] != 'waiting':   # first time: a fact only the user knows: ask
             asked = tell(r, f"RECOMMENDATION robotics-radar {NOW}: you {SAID[answer]} \"{r['title']}\" ({r['start'][:16].replace('T', ' ')}). Its Luma form asks:\n\n"
                             f"{numbered(l_q, l_ans)}\n\nReply \"ok\" in a comment to send it. To change an answer, add lines like \"2: your answer\" "
                             f"to the same comment. \"?\" = only you know it: give it, or the radar can't send. {url}", 'approve the answers')
@@ -171,11 +180,11 @@ def step(r, answer):
         l_q, l_ans = json.loads(r['questions']), json.loads(r['answers'])
         for n, a in d_over.items():
             if 1 <= n <= len(l_q): l_ans[n - 1] = [x.strip() for x in re.split(r'[;,]', a)] if l_q[n - 1]['qt'] == 'multi-select' else a
-        l_miss = [str(i + 1) for i, (q, a) in enumerate(zip(l_q, l_ans)) if q['required'] and a in (None, '', '?')]
+        l_miss = missing(l_q, l_ans)
         if l_miss:
             asked = tell(r, f"robotics-radar {NOW}: still missing for \"{r['title']}\": answer {', '.join(l_miss)}. Reply \"ok\" with lines like \"{l_miss[0]}: your answer\".", 'approve the answers')
             save(eid, answers=json.dumps(l_ans, ensure_ascii=False), asked_at=asked or r['asked_at']); return
-    else:
+    elif l_ans is None:
         l_ans = [register.known(q) for q in l_q]
     state, shot = register.fill(chrome(), url, l_q, l_ans, SUBMIT)
     save(eid, state=state if state in DONE + ('filled',) else 'failed', grp=grp, why=why, answers=json.dumps(l_ans, ensure_ascii=False), shot=str(shot), by_radar=int(SUBMIT))   # the radar clicked submit, even when Luma showed no state yet
@@ -187,7 +196,7 @@ def step(r, answer):
     else:
         tell(r, f"robotics-radar {NOW}: the radar sent the form for \"{r['title']}\" but Luma shows no confirmation. Check here: {url}", 'check the registration')
         l_errors.append(f"{r['title']}: no confirmation after submit ({shot})")
-    l_done.append((r, state))
+    l_done.append((r, state + (f"; answers sent: {numbered(l_q, l_ans)}".replace('\n', ' · ') if SUBMIT and any(q['required'] for q in l_q) else '')))
 
 
 def show_status(ce, state):

@@ -2,7 +2,8 @@
 
 Groups (DESIGN.md §5), from Luma's own data (the event's registration_questions), never by clicking:
   auto       every required question has a known answer (config form:, terms accepted) → register
-  ask first  a required question needs the user's own words (text, dropdown, url, phone…) → Claude drafts, the user says "ok"
+  ask first  a required question has no known answer (text, dropdown, url, phone…) → Claude drafts; run.py sends the draft by itself
+             (user, 2026-11-02) and asks the user only for a fact Claude lacks ("?"), then their "ok" sends it
   never      paid or closed → the user is told; the radar never pays
 Trust ramp: while registration.submit is false, the form is filled but the last click is not made: a screenshot instead.
 """

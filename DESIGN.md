@@ -20,7 +20,7 @@ src/stage_a/   events.sh, once a day                               src/stage_b/ 
   ├─ 1 discover   Luma, Voxel51, pages; weekly web search            ├─ read the shared calendar: the user's answer on each entry
   ├─ 2 merge      SQLite state/radar.sqlite                          ├─ accepted, Luma, free:
   ├─ 3 score      claude -p: score + neutral blurb (new/changed)     │     auto      → fill the form in the radar's Chrome, send
-  ├─ 4 write      the shared calendar (public) ──┐                   │     ask first → Claude drafts → comment → user's "ok" → send
+  ├─ 4 write      the shared calendar (public) ──┐                   │     ask first → only a fact Claude lacks → user's "ok" → send
   │               event tasks of past events: deleted  │             ├─ accepted, not Luma / paid / closed → comment "register yourself"
   └─ notify       NOT BUILT (§9)                 │                   ├─ pending / waitlist → Luma's page read again, every run
                                                  │                   ├─ declined after registered → comment "cancel it"
@@ -71,8 +71,8 @@ Trigger (user, 2026-10-21, replacing "every free event with score ≥75"): only 
 
 | Group | When | What the radar does |
 |---|---|---|
-| **auto** | free (price 0 on the official page), registration open (or a waitlist), score ≥75, the form asks only for known answers (name, email, company/role, LinkedIn), no new account | registers; Luma's "pending approval" or "waitlist" is read again every run until "registered" (a host approved the next day, 2026-10-24) |
-| **ask first** | as auto, but the form has a free-text question ("why do you want to join?") | writes the answers (skill `writing-for-others`) in a comment on the event task, retitles it `: approve my answers`; the user's "ok" in a comment → the next run submits |
+| **auto** | free (price 0 on the official page), registration open (or a waitlist), no new account, and every required answer is known (name, email, company/role, LinkedIn) or drafted by Claude from the user's facts, "why do you want to join?" included (user, 2026-11-02) | registers; Luma's "pending approval" or "waitlist" is read again every run until "registered" (a host approved the next day, 2026-10-24) |
+| **ask first** | as auto, but a required answer needs a fact Claude does not have (Claude answers "?": a phone number, a person to name…) | writes the drafted answers in a comment on the event task, retitles it `: approve the answers`; the user's missing answer and "ok" in a comment → the next run submits |
 | **never** | paid, a new account needed, a password or a CAPTCHA, invitation code, unclear eligibility | event task only, as today |
 
 - Form email: the `form.email` value in `~/.config/robotics-radar/config.yaml` (the user's `+events` address, so a Gmail filter can label the replies; user, 2026-10-20). The site's login (Luma's account) stays whatever the user logged in with.

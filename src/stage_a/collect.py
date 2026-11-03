@@ -122,10 +122,11 @@ def pages(db, l_cost):
             prompt = f"""Today is {today}, timezone Europe/Zurich. Below is the text of the web page {url}.
 List every event on it that takes place between today and {HORIZON.date()}: talks, seminars, meetups, workshops, hackathons, conferences, courses.
 Answer ONLY a JSON array, no prose. One object per event:
-{{"title": "Speaker Name: talk title" when the page names a speaker, else the event's name, "start": "YYYY-MM-DDTHH:MM" local time or "YYYY-MM-DD" if no time, "end": same format or null,
+{{"title": "Speaker Name: talk title" when the page names a speaker, else the event's name exactly as the page writes it; only a generic name that does not say whose event it is ("Demo Day", "Open Lab 27.11.2026") gets its organiser in front ("European Robotics House Demo Day"), "start": "YYYY-MM-DDTHH:MM" local time or "YYYY-MM-DD" if no time, "end": same format or null,
 "venue": str or "", "city": str or "", "online": bool, "organizer": str or "", "url": the event's own link from the page (absolute) or null,
 "registration": "open" | "approval" | "waitlist" | "full" | "closed" | "not_open" | "none" (no registration needed) | "unknown",
 "price": str or null, "free": true | false | null, "deadline": "YYYY-MM-DD" or null, "summary": one sentence}}
+The side programme of a bigger event (its day zero, side events, pre-events) is not an event of its own: say it in the main event's summary.
 Copy facts from the page only; never guess. An empty array if there is none.
 
 PAGE TEXT:

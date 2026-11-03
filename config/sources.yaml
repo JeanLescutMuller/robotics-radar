@@ -31,6 +31,11 @@ pages:
   - https://ethz.ch/de/news-und-veranstaltungen/veranstaltungen/eth-open-i.html
   # ChatGPT found it, the radar did not (2026-10-28): at ETH Zürich, Nov 11-12; remove once past
   - https://summit.sprintrobotics.org/europe-summit/
+  # ChatGPT found them, the radar did not (week of 2026-10-27, its last before it was turned off on 2026-11-03)
+  - https://sipbb.ch/events/sipbb-event/            # Switzerland Innovation Park Biel/Bienne: Swiss Smart Factory Open Day
+  - https://www.startglobal.org/start-summit         # START Summit, St. Gallen, every March
+  - https://www.european-robotics.house/             # European Robotics House: its cohort's Demo Day
+  - https://robotx.ethz.ch/education/open-lab-27-11-2026.html   # ETH RobotX Open Lab Day, Nov 27 (no RobotX listing reachable over plain HTTP); remove once past
 # pages filled by JavaScript: plain HTTP gets no events; read with the headless Chrome of phase 4 (not yet)
 pages_js:
   - https://darecampus.ch/dare-campus-calendar-2026.html

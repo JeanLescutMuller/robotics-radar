@@ -94,6 +94,12 @@ def norm_tokens(title):
     return [w for w in re.findall(r'[a-z0-9]+', title) if w not in STOP and (len(w) > 1 or w.isdigit())]
 
 
+def plain_words(title):
+    """A title's words, keeping the common ones STOP drops (robotics, day, ai…); no years, no small words."""
+    title = unicodedata.normalize('NFKD', title).encode('ascii', 'ignore').decode().lower()
+    return {w for w in re.findall(r'[a-z]+', title) if len(w) > 1 and w not in {'an', 'and', 'the', 'of', 'for', 'at', 'in', 'on', 'to', 'by', 'with', 'vs'}}
+
+
 def similarity(t1, t2):
     l1, l2 = norm_tokens(t1), norm_tokens(t2)
     if not l1 or not l2: return 0.0
@@ -114,7 +120,14 @@ def same_event(a, b, s_listing_urls=frozenset()):
     if a['start'] and b['start']:
         # same day and two shared words is enough: a talk's title vs a task named after its speaker ("UZH aerial manipulation colloquium")
         if a['start'] == b['start'] and len(set(norm_tokens(a['title'])) & set(norm_tokens(b['title']))) >= 2 and similarity(a['title'], b['title']) >= 0.4: return True
-        return close and similarity(a['title'], b['title']) >= 0.6
+        # same day and one title holds every word of the other (at least two): a page that puts the organiser or speaker in front
+        # (2026-11-03: "RobotX Swiss Robotics Day" vs "Swiss Robotics Day 2026", "Stefan Rusinov: Physical AI Panel" vs "Physical AI Panel")
+        s_a, s_b = plain_words(a['title']), plain_words(b['title'])
+        if a['start'] == b['start'] and min(len(s_a), len(s_b)) >= 2 and (s_a <= s_b or s_b <= s_a): return True
+        if a['start'] == b['start']: return similarity(a['title'], b['title']) >= 0.6
+        # another day: half the longer title's words too (2026-11-03: "ETH RobotX Open Lab 27.11.2026" on the 27th took over "ETH Zürich @ Open-i" on the 26th)
+        s_a, s_b = set(norm_tokens(a['title'])), set(norm_tokens(b['title']))
+        return close and similarity(a['title'], b['title']) >= 0.6 and len(s_a & s_b) >= 0.5 * max(len(s_a), len(s_b))
     return similarity(a['title'], b['title']) >= 0.8
 
 

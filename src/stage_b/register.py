@@ -96,8 +96,13 @@ def fill(ch, url, l_q, l_ans, submit):
         lab = form.locator('label', has_text=q['label'][:60]).first
         if q['qt'] == 'phone': form.locator('input[type=tel]').first.fill(str(ans)); continue
         if q['qt'] in ACCEPT:
-            box = lab.locator('xpath=following::input[@type="checkbox"][1]')
-            if not (box.count() and box.is_checked()): lab.click()
+            # terms given as a link: no question label, "By registering, I agree to the <a>event terms</a>.", the box inside the label (seen 2026-11-04)
+            if not lab.count(): lab = form.locator('label', has_text=re.compile(r'\bagree\b', re.I)).first
+            box = lab.locator('input[type=checkbox]')
+            if not box.count(): box = lab.locator('xpath=following::input[@type="checkbox"][1]')
+            icon = lab.locator('.checkbox-icon')   # not the label's middle: it may hold the terms' link (a new tab)
+            if not (box.count() and box.is_checked()): (icon.first if icon.count() else lab).click()
+            if box.count() and not box.is_checked(): raise RuntimeError(f"Luma: the box \"{q['label']}\" did not get checked")
             continue
         multi = lab.locator('xpath=ancestor::*[@role="combobox"][1]')   # a multi-select: the label sits inside its combobox
         field = multi if multi.count() else form.locator(f'[id="{lab.get_attribute("for")}"]')

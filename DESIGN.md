@@ -183,5 +183,5 @@ A  general, shareable (Henrik)          B  for Jean, private                    
 
 - Unconfirmed time: a whole-day Couple event "time not confirmed", updated when the time is published [proposed 2026-10-21].
 - (2026-11-02) a registration B made only to see the guest list, for an event the user then declines or does not accept by the day before: cancelled by the radar, so the spot goes back to the waitlist [proposed].
-- (2026-11-02) guest research: public web search only, or also the slow LinkedIn loop in the "Claude - LinkedIn" Chrome profile (reserved for job-applications since 2026-10-19).
+- (2026-11-02) guest research: public web search only, or also the slow LinkedIn loop in the "Claude - general" Chrome profile (LinkedIn and Facebook are there since 2026-11-07; it was "Claude - LinkedIn", reserved for job-applications, 2026-10-19).
 - (2026-11-02) does Luma always hide the guest list before registration? [to check on the next Luma event] (2026-11-05, Physical AI Meetup, luma.com/physical-ai-zur: the host can hide it from everyone, registered guests too: `show_guest_list: false` in Luma's public API (`api.lu.ma/url`), and `get-guest-list` answers "You don't have access to see the guest list." even after approval. So B reads `show_guest_list` first and does not register only to see guests when it is false.)

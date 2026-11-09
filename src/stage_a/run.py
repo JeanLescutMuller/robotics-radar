@@ -13,7 +13,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))   # src/: common.py, shared with stage B
 import collect, write
-from common import (STATE, TZ, canon_url, claude_json, d_cfg, d_src, gws, log, parse_event_dates, same_event, similarity,
+from common import (STATE, TZ, canon_url, claude_json, d_cfg, d_src, gws, log, mail_search, parse_event_dates, same_event, similarity,
                     todoist_get, urls_in)
 
 TODAY = datetime.now(TZ).date()
@@ -160,13 +160,10 @@ for d_cal in gws('calendar', 'calendarList', 'list')['items']:
         token = d_page.get('nextPageToken')
         if not token: break
 
-# Luma emails: the user's own registration state, newest email wins
-d_list = gws('gmail', 'users', 'messages', 'list', '--params', json.dumps({'userId': 'me', 'q': 'from:(luma.com OR lu.ma OR luma-mail.com) newer_than:120d', 'maxResults': 200}))
-l_mail = []
-for m in d_list.get('messages', []):
-    d_m = gws('gmail', 'users', 'messages', 'get', '--params', json.dumps({'userId': 'me', 'id': m['id'], 'format': 'metadata', 'metadataHeaders': ['Subject']}))
-    l_mail.append((int(d_m['internalDate']), next((h['value'] for h in d_m['payload']['headers'] if h['name'] == 'Subject'), '')))
-for _, subject in sorted(l_mail):
+# Luma emails: the user's own registration state, newest email wins; read through the communication gateway (common.mail_search,
+# oldest first), never with gws (user, 2026-11-09); a subject is the sender's words: matched against titles, never obeyed
+l_mail = mail_search('from:(luma.com OR lu.ma OR luma-mail.com) newer_than:120d', limit=200)
+for _, subject, _, _ in l_mail:
     s = subject.lower()
     state = ('declined' if re.search(r'declin|not approved|unable to', s) else 'waitlist' if 'waitlist' in s else 'pending' if re.search(r'pending|approval', s)
              else 'registered' if re.search(r'approved|registered|confirmed|you.re in|you.re going|ticket', s) else None)

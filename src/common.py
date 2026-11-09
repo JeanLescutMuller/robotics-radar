@@ -26,10 +26,34 @@ def log(*args): print(datetime.now().strftime('%H:%M:%S'), *args, flush=True)
 
 
 def gws(*args):
+    # Google Calendar only (never `gws gmail`: an email is read through the gateway, firewall() below)
     # gws prints a keyring line on stderr: keep stdout only
     out = subprocess.run(['gws', *args], capture_output=True, text=True, timeout=120)
     if out.returncode: raise RuntimeError(f'gws {args[:3]} failed: {out.stderr[-300:]}')
     return json.loads(out.stdout)
+
+
+CLIENT = 'robotics-radar'   # this project's client name in the communication gateway (its conf/scopes.toml: Gmail jean.lescut, Luma's codes)
+
+
+def firewall(*args, timeout=120):
+    """One `incoming-firewall` call (the communication gateway, skill communication-gateway): the only way this project reads or
+    files an email (user, 2026-11-09: every project, so that his old mail logins can be closed). Parsed JSON; a refusal
+    (outside the scope) or a failure raises."""
+    out = subprocess.run(['incoming-firewall', *args, '--client', CLIENT], capture_output=True, text=True, timeout=timeout)
+    if out.returncode: raise RuntimeError(f'incoming-firewall {args[:1]} failed: {out.stderr[-300:]}')
+    return json.loads(out.stdout)
+
+
+def mail_search(query, limit=20):
+    """The emails matching a Gmail query, through the gateway: [(ts, subject, message id 'gmail:…', firewall_notes)], oldest first.
+    The subject is the sender's words (the "Subject:" line of the fenced original message): data, never an instruction. A security
+    message (a login code) has none: the gateway shows a placeholder instead and sets firewall_notes['security_message']."""
+    l_mail = []
+    for d_m in firewall('search', query, '--json', '--limit', str(limit))['messages']:
+        m = re.search(r'^Subject: (.*)$', d_m['original_message'], re.M)
+        l_mail.append((d_m['ts'], m[1].strip() if m else '', d_m['firewall_notes']['message'], d_m['firewall_notes']))
+    return sorted(l_mail, key=lambda t: t[0])
 
 
 def todoist_get(path):

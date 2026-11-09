@@ -9,7 +9,7 @@ The trigger is the user's answer only (user, 2026-10-21): "Yes" or "Maybe" (user
   declined after the radar registered them      → a comment: cancel it on Luma
   Luma says pending or waitlist                 → read Luma's page again every run, until the host approves
 Reads:  the shared calendar (gws), Luma's public API and the event page in the radar's Chrome (logged in to the user's Luma
-        account), stage A's state/radar.sqlite (read-only: which Todoist task is the event's), Todoist comments (the user's "ok").
+        account; its login code and emails only through the communication gateway: luma.py), stage A's state/radar.sqlite (read-only: which Todoist task is the event's), Todoist comments (the user's "ok").
 Writes: state/register.sqlite, state/register_report.md, Todoist (comments on the event task; the task itself if there is none),
         the private calendar: the title of the user's copy of each accepted (or declined) entry, `🤖 <status> <title>` (STATUS).
         Writes to Todoist only with --write and dry_run: false; Luma's last click also needs registration.submit: true (trust ramp:

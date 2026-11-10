@@ -216,9 +216,22 @@ def show_status(ce, state):
 
 
 # ---------- the accepted (and declined) events ----------
+def show_color(ce):
+    """The user's copy of every entry in the robotics color, registered or not (Blueberry, colorId 9: skill google-calendar; user, 2026-11-10).
+    Tested 2026-11-10: a guest's color stays in their copy, the shared entry keeps none."""
+    try: mine = gws('calendar', 'events', 'get', '--params', json.dumps({'calendarId': ME, 'eventId': ce['id']}))
+    except RuntimeError: return   # not in the private calendar (no invitation)
+    if mine.get('colorId') == COLOR: return
+    if not WRITING: log(f"would color in the private calendar: {mine.get('summary')}"); return
+    gws('calendar', 'events', 'patch', '--params', json.dumps({'calendarId': ME, 'eventId': ce['id'], 'sendUpdates': 'none'}), '--json', json.dumps({'colorId': COLOR}))
+
+
+COLOR = '9'
 l_ce = entries()
 d_answer, d_ce = {}, {ce['id']: ce for ce in l_ce}
 for ce in l_ce:
+    try: show_color(ce)
+    except Exception as e: l_errors.append(f"color of {ce.get('summary')}: {str(e)[:200]}")
     answer = next((a.get('responseStatus') for a in ce.get('attendees') or [] if a['email'].lower() == ME), None)
     desc = ce.get('description') or ''
     if answer not in ('accepted', 'tentative', 'declined'): continue   # "Maybe" registers too (user, 2026-11-02)

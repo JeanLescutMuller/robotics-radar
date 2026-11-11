@@ -1,5 +1,7 @@
 # robotics-radar
 
+**An LLM-powered radar for robotics and Physical AI events in and near Zürich (and the big ones in Europe): it finds and scores them, publishes them as a shareable calendar, and registers me for the ones I accept.**
+
 | Stage | What I get |
 |---|---|
 | **stage A, the public stage** | a shareable calendar of the robotics and Physical AI events worth the trip (in or near Zürich, and the big ones in Europe), always up to date |

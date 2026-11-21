@@ -1,8 +1,8 @@
 """Luma, in the radar's own Chrome: stay logged in to the user's Luma account (DESIGN.md §5, option A: user, 2026-10-21).
 
 Luma has no password here: it emails a 6-digit code. login() types the account email, gets ONLY that code (from a verified
-Luma sender, received after the request, within 3 minutes) from the communication gateway (`incoming-firewall code`, skill
-communication-gateway: the code alone, never the message), and types it. Anything else Luma asks for (password, Google,
+Luma sender, received after the request, within 3 minutes) from layer-firewall (`incoming-firewall code`, skill
+layer-firewall: the code alone, never the message), and types it. Anything else Luma asks for (password, Google,
 CAPTCHA, passkey): stop, never bypass. Afterwards the login's emails (the codes, "New sign-in to Luma") are read, labelled and
 archived through the gateway (tidy_inbox): kept, out of the user's Inbox (user, 2026-10-21: jobs clean the inbox after they work).
 Gmail is never read directly (no `gws gmail`; user, 2026-11-09): every email goes through the gateway, client robotics-radar.

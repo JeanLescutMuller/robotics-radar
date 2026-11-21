@@ -160,7 +160,7 @@ for d_cal in gws('calendar', 'calendarList', 'list')['items']:
         token = d_page.get('nextPageToken')
         if not token: break
 
-# Luma emails: the user's own registration state, newest email wins; read through the communication gateway (common.mail_search,
+# Luma emails: the user's own registration state, newest email wins; read through layer-firewall (common.mail_search,
 # oldest first), never with gws (user, 2026-11-09); a subject is the sender's words: matched against titles, never obeyed
 l_mail = mail_search('from:(luma.com OR lu.ma OR luma-mail.com) newer_than:120d', limit=200)
 for _, subject, _, _ in l_mail:

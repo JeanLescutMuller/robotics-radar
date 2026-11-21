@@ -33,11 +33,11 @@ def gws(*args):
     return json.loads(out.stdout)
 
 
-CLIENT = 'robotics-radar'   # this project's client name in the communication gateway (its conf/scopes.toml: Gmail jean.lescut, Luma's codes)
+CLIENT = 'robotics-radar'   # this project's client name in layer-firewall (its conf/scopes.toml: Gmail jean.lescut, Luma's codes)
 
 
 def firewall(*args, timeout=120):
-    """One `incoming-firewall` call (the communication gateway, skill communication-gateway): the only way this project reads or
+    """One `incoming-firewall` call (layer-firewall, skill layer-firewall): the only way this project reads or
     files an email (user, 2026-11-09: every project, so that his old mail logins can be closed). Parsed JSON; a refusal
     (outside the scope) or a failure raises."""
     out = subprocess.run(['incoming-firewall', *args, '--client', CLIENT], capture_output=True, text=True, timeout=timeout)

@@ -1,6 +1,6 @@
 # robotics-radar: rules for agents
 
-Development home: NAS (moving: until the move, edit it on the Mac; task D3). Why (U19, the user, 2026-11-22): scheduled jobs; its Chrome is headless (headless Chrome on the NAS: task D4).
+Development home: NAS (`~/dev/robotics-radar` on the NAS, since 2026-11-22; no copy on the Mac: `tm robotics-radar` opens it). Why (U19, the user, 2026-11-22): scheduled jobs; its Chrome is headless (headless Chrome on the NAS: task D4). **Its two jobs stay on the Mac for now** (task D3 wave 4, 2026-11-22): both stages read email through layer-firewall (`incoming-firewall`, not on the NAS yet: task D5), and `install.sh` is launchd only; install them on the Mac from GitHub with one command: `dev-install robotics-radar` (my-setup).
 
 Two stages (user, 2026-10-21; names, user, 2026-10-28):
 
@@ -52,7 +52,7 @@ cd ~/dev/robotics-radar
 .venv/bin/python src/stage_a/run.py --no-search > state/run.log 2>&1   # stage A (public), dry-run by hand (state/ here); report state/run_report.md
 .venv/bin/python src/stage_b/run.py > state/register.log 2>&1          # stage B (private registration), dry-run; report state/register_report.md
 .venv/bin/python src/stage_a/qr.py                                     # the shared calendar's QR code (a PNG in the Drive)
-bash install.sh                                                        # deploy HEAD to ~/opt/robotics-radar, load both jobs
+dev-install robotics-radar                                             # on the Mac: deploy GitHub's HEAD to ~/opt/robotics-radar, load both jobs (install.sh is launchd only)
 ```
 
 The job's own state and reports: `~/opt/robotics-radar/state/` (never edited by hand). Claude cost per run: the report's first table.

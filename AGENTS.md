@@ -1,5 +1,7 @@
 # robotics-radar: rules for agents
 
+Development home: NAS (moving: until the move, edit it on the Mac; task D3). Why (U19, the user, 2026-11-22): scheduled jobs; its Chrome is headless (headless Chrome on the NAS: task D4).
+
 Two stages (user, 2026-10-21; names, user, 2026-10-28):
 
 | Stage | Code, job | What it does | Writes |

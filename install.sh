@@ -1,13 +1,13 @@
 #!/bin/bash
 # Deploys robotics-radar on this Mac. Idempotent.
 #   1. the committed HEAD -> ~/opt/robotics-radar/ (its runtime data state/ and chrome/ are never overwritten)
-#   2. its Python: ~/opt/robotics-radar/.venv (requirements.txt), kept between deploys, rebuilt when requirements.txt changes
+#   2. its Python: ~/opt/robotics-radar/.venv, kept between deploys, synced to uv.lock (uv sync --locked; skill python-deployment)
 #   3. two jobs, each a job-runner entrypoint + dashboard settings, run every hour and at login by its LaunchAgent (RunAtLoad):
 #        stage A (public)   events.sh    job robotics-radar.events     com.jeanlescut.robotics-radar.events     (once a day: find events, the shared calendar)
 #        stage B (private)  register.sh  job robotics-radar.register   com.jeanlescut.robotics-radar.register   (every hour: register what the user accepted)
 #   4. self-migration: the single job robotics-radar of before 2026-10-21 (entrypoint.sh, com.jeanlescut.robotics-radar) is removed
 # Writes happen only when ~/.config/robotics-radar/config.yaml says dry_run: false (and, for Luma's last click, registration.submit: true).
-# Needs: ~/.config/robotics-radar/config.yaml, task-management's Todoist token, gws logged in (Calendar), layer-firewall installed (incoming-firewall on the PATH, client robotics-radar), ~/.local/bin/python3.11 (uv python install 3.11), Google Chrome.
+# Needs: ~/.config/robotics-radar/config.yaml, task-management's Todoist token, gws logged in (Calendar), layer-firewall installed (incoming-firewall on the PATH, client robotics-radar), ~/.local/bin/uv (skill python-deployment), Google Chrome.
 #
 # Usage: bash install.sh       Undo: bash uninstall.sh
 set -euo pipefail
@@ -15,7 +15,7 @@ SRC="$(cd "$(dirname "$0")" && pwd)"
 DST="$HOME/opt/robotics-radar"
 OLD=com.jeanlescut.robotics-radar        # the single job until 2026-10-21
 JOBS=(events register)                    # src/<job>.sh → job robotics-radar.<job>
-PY="$HOME/.local/bin/python3.11"            # builds the venv
+UV="$HOME/.local/bin/uv"                    # builds the venv (skill python-deployment)
 
 # -- 0. Checks ----------------------------------------------------------------------------------------------------
 [ -f "$HOME/.config/robotics-radar/config.yaml" ] || { echo "missing ~/.config/robotics-radar/config.yaml (keys: config/config.example.yaml)"; exit 1; }
@@ -31,11 +31,8 @@ mkdir -p "$DST/state"
 rsync -a --delete "${EXCL[@]}" "$TMP/" "$DST/"
 
 # -- 2. Python ----------------------------------------------------------------------------------------------------
-if ! cmp -s "$DST/requirements.txt" "$DST/.venv/requirements.txt"; then
-  "$PY" -m venv --clear "$DST/.venv"
-  "$DST/.venv/bin/pip" install -q -r "$DST/requirements.txt" > "$TMP/pip.log" 2>&1 || { tail -5 "$TMP/pip.log"; exit 1; }
-  cp "$DST/requirements.txt" "$DST/.venv/requirements.txt"
-fi
+# Exactly uv.lock's versions on .python-version's Python; nothing to do when the .venv already matches
+"$UV" sync --quiet --locked --no-dev --project "$DST" > "$TMP/uv.log" 2>&1 || { tail -5 "$TMP/uv.log"; exit 1; }
 "$DST/.venv/bin/python" -m py_compile "$DST"/src/*.py "$DST"/src/stage_*/*.py
 
 echo "$(git -C "$SRC" rev-parse --short HEAD) $(date -Iseconds)" > "$DST/DEPLOYED"

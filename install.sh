@@ -7,7 +7,7 @@
 #        stage B (private)  register.sh  job robotics-radar.register   com.jeanlescut.robotics-radar.register   (every hour: register what the user accepted)
 #   4. self-migration: the single job robotics-radar of before 2026-10-21 (entrypoint.sh, com.jeanlescut.robotics-radar) is removed
 # Writes happen only when ~/.config/robotics-radar/config.yaml says dry_run: false (and, for Luma's last click, registration.submit: true).
-# Needs: ~/.config/robotics-radar/config.yaml, task-management's Todoist token, gws logged in (Calendar), layer-firewall installed (incoming-firewall on the PATH, client robotics-radar), ~/.local/bin/uv (skill runtime-environments), Google Chrome.
+# Needs: ~/.config/robotics-radar/config.yaml, task-management's Todoist token, gws logged in (Calendar), agent-firewall installed (incoming-firewall on the PATH, client robotics-radar), ~/.local/bin/uv (skill runtime-environments), Google Chrome.
 #
 # Usage: bash install.sh       Undo: bash uninstall.sh
 set -euo pipefail

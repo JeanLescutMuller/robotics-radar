@@ -1,6 +1,6 @@
 # robotics-radar: rules for agents
 
-Development home: NAS (`~/dev/robotics-radar` on the NAS, since 2026-11-22; no copy on the Mac: `tm robotics-radar` opens it). Why (U19, the user, 2026-11-22): scheduled jobs; its Chrome is headless (headless Chrome on the NAS: task D4). **Its two jobs stay on the Mac for now** (task D3 wave 4, 2026-11-22): both stages read email through layer-firewall (`incoming-firewall`, not on the NAS yet: task D5), and `install.sh` is launchd only; install them on the Mac from GitHub with one command: `dev-install robotics-radar` (my-setup).
+Development home: NAS (`~/dev/professional/robotics-radar` on the NAS, since 2026-11-22; no copy on the Mac: `tm robotics-radar` opens it). Why (U19, the user, 2026-11-22): scheduled jobs; its Chrome is headless (headless Chrome on the NAS: task D4). **Its two jobs stay on the Mac for now** (task D3 wave 4, 2026-11-22): both stages read email through agent-firewall (`incoming-firewall`, not on the NAS yet: task D5), and `install.sh` is launchd only; install them on the Mac from GitHub with one command: `dev-install robotics-radar` (my-setup).
 
 Two stages (user, 2026-10-21; names, user, 2026-10-28):
 
@@ -21,9 +21,9 @@ Read before working: `REQUIREMENTS.md` (what the user gets), `DESIGN.md` (what w
 - **Dry-run by default** until a phase's writes are tested; every Calendar or Todoist write is read back.
 - **Never duplicate** an event in any visible calendar, or an event task in Todoist (`REQUIREMENTS.md` Calendar, Todoist).
 - **Registration**: only events the user accepted in the calendar (user, 2026-10-21), free, registration group "auto" (answers known or drafted by Claude, "why join?" included: no "ok" needed, user, 2026-11-02), or "ask first" (a fact only the user knows) after the user's answer and "ok" (`DESIGN.md` §5). Never pay, never create an account, never type a password, never bypass a CAPTCHA: hand it to the user as a Todoist task.
-- **Notifications are not built** (user, 2026-10-20): they wait for `~/dev/tasks` (Todoist task "Send the radar's notifications through alerting"). Do not add another channel.
+- **Notifications are not built** (user, 2026-10-20): they wait for `~/dev/agents/tasks` (Todoist task "Send the radar's notifications through alerting"). Do not add another channel.
 - Event tasks: only stage B makes one, for an event the user accepted and the radar could not register by itself (user, 2026-10-21). They are the user's: no `agent`/`claude`/`chatgpt` labels, never complete them; delete the task of an event that is over.
-- **Email only through layer-firewall** (user, 2026-11-09): `incoming-firewall … --client robotics-radar` (`common.firewall`, `common.mail_search`; skill `layer-firewall`, `DESIGN.md` §5), never `gws gmail`. Test: `.venv/bin/python test/luma_mail_test.py`.
+- **Email only through agent-firewall** (user, 2026-11-09): `incoming-firewall … --client robotics-radar` (`common.firewall`, `common.mail_search`; skill `agent-firewall`, `DESIGN.md` §5), never `gws gmail`. Test: `.venv/bin/python test/luma_mail_test.py`.
 - Chrome: headless, own data folder `~/opt/robotics-radar/chrome/`, started only through the Chrome kit's launcher (recorded, quit and checked, never kept; skill `chrome`); test: `.venv/bin/python test/chrome_test.py`. Inside a Claude session, first `agent-chrome authorize-tab "<why>" --visibility invisible --visibility-reason "headless engine" --mode single`: the launcher refuses otherwise (scheduled runs and runs by hand need nothing).
 - Scheduled job: skill `jobs-and-services`, through job-runner, model `~/dev/job-applications/auto-job-apply/`.
 
@@ -48,7 +48,7 @@ Read before working: `REQUIREMENTS.md` (what the user gets), `DESIGN.md` (what w
 ## Commands
 
 ```bash
-cd ~/dev/robotics-radar
+cd ~/dev/professional/robotics-radar
 .venv/bin/python src/stage_a/run.py --no-search > state/run.log 2>&1   # stage A (public), dry-run by hand (state/ here); report state/run_report.md
 .venv/bin/python src/stage_b/run.py > state/register.log 2>&1          # stage B (private registration), dry-run; report state/register_report.md
 .venv/bin/python src/stage_a/qr.py                                     # the shared calendar's QR code (a PNG in the Drive)

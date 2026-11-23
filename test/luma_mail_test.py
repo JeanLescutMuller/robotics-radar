@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Luma's emails through layer-firewall (src/stage_b/luma.py, src/common.py), against a fake `incoming-firewall`:
+"""Luma's emails through agent-firewall (src/stage_b/luma.py, src/common.py), against a fake `incoming-firewall`:
 no Gmail, no Luma, no Chrome. The fake answers like the real command (`search --json` rows of DESIGN.md §A3 of the gateway,
 `file`, `code`) and records every call.
 

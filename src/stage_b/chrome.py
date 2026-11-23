@@ -1,7 +1,7 @@
-"""The radar's own headless Chrome (skill chrome; model: ~/dev/marketplace-seller/src/engine_chrome.py).
+"""The radar's own headless Chrome (skill chrome; model: ~/dev/personal/marketplace-seller/src/engine_chrome.py).
 
 No window, ever. Its own data folder ~/opt/robotics-radar/chrome/ (logged in to Luma by luma.py, never the user's profiles), started
-only through the Chrome kit's launcher (my-setup, ~/opt/my-setup/chrome/launch_headless.py): it records who opened it, when and why
+only through the Chrome kit's launcher (my-setup, ~/opt/agent-chrome/kit/launch_headless.py): it records who opened it, when and why
 (agent-chrome status), passes `--disable-blink-features=AutomationControlled` and a normal user agent so pages see a normal Chrome, and
 quits Chrome at the end of every use, checked: no process left on the data folder; also on an error or a kill (SIGTERM). Never
 kept for the next run (Busy keeps two runs apart). Attached with Playwright's connect_over_cdp. Mac only, like stage B.
@@ -15,7 +15,7 @@ from playwright.sync_api import sync_playwright
 from pathlib import Path
 from common import STATE, log
 
-sys.path.insert(0, str(Path.home() / 'opt/my-setup/chrome'))   # the Chrome kit (my-setup): standard library only
+sys.path.insert(0, str(Path.home() / 'opt/agent-chrome/kit'))   # the Chrome kit (my-setup): standard library only
 from launch_headless import headless
 
 # one data folder, one Luma login, for the job and for runs by hand in ~/dev (AGENTS.md): another folder would log in again,

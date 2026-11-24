@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The radar's Chrome through the Chrome kit's launcher (src/stage_b/chrome.py): one real headless start, recorded, closed and
 checked. No login, no Luma: a temporary data folder, never ~/opt/robotics-radar/chrome/; a temporary kit record (CHROME_STATE),
-never ~/opt/agent-chrome/state/; a temporary shots folder.
+never ~/opt/chrome-gateways/state/; a temporary shots folder.
 
 Reads/writes: temporary folders only (deleted at the end); reads ~/.config/robotics-radar/config.yaml (through common.py)
 Run:    .venv/bin/python test/chrome_test.py      (~5 s, no AI call)
